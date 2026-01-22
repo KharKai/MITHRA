@@ -6,7 +6,7 @@ from multiprocessing.shared_memory import SharedMemory
 from core_app.controllers_TOREMOVE.controller_Amptek import mca8000d
 from core_app.controllers_TOREMOVE.controller_QePro import qepro
 
-from core_app.utils.mapping_parameters import MappingParameters
+from core_app.MITHRA_utils.mapping_parameters import MappingParameters
 
 
 class Data(MappingParameters):

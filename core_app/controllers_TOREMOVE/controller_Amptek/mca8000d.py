@@ -308,7 +308,7 @@ spectrumSize = {1: 255,
                 12: 8191}  # max channel number zero indexed
 
 
-class device:
+class Device:
     """device provides all communications to a mca8000d device"""
 
     def __init__(self):

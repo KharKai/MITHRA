@@ -1,10 +1,11 @@
 import numpy as np
 import cv2
 import math
+import time
 
 from multiprocessing.shared_memory import SharedMemory
 
-class Webcam:
+class WebcamProcess:
     def __init__(self, source_video):
         self.source_video = source_video
         try:
@@ -34,19 +35,25 @@ class Webcam:
             self.sh_mem.unlink()
 
 
-class TelemetricLaser:
+class TelemetricLaserProcess:
     def __init__(self):
         self.corr_angle = math.sin(45 * (math.pi / 180))
 
-    def get_distance(self, telemetric_laser, q_laser, z_lock_status, *args):
-        while True:
-            val = telemetric_laser.read_distance()
-            q_laser.put(val)
-            with z_lock_status:
-                z_lock_status.wait()
-                print('correcting')
-                self.correct_distance(val, *args)
-
+    def get_distance(self, telemetric_laser, q_laser, q_z_lock_status, motor):
+        try:
+            while True:
+                print('getting distance...')
+                time.sleep(0.1)
+                # val = telemetric_laser.read_distance()
+                val = np.random.randint(0, 10, 1, dtype=np.uint16)
+                q_laser.put(val)
+                z_lock_status = q_z_lock_status.get()
+                print(z_lock_status)
+                if z_lock_status[0]:
+                    print('correcting')
+                    # self.correct_distance(val, z_lock_status[1], motor)
+        except KeyboardInterrupt:
+            pass
 
     def correct_distance(self, val, z_lock_distance, motor):
         if val < 130:

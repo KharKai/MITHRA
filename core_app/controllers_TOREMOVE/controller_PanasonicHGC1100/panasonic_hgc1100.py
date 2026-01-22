@@ -40,7 +40,7 @@ class Device:
 
 
 if __name__ == '__main__':
-    laser = device()
+    laser = Device()
     laser.connect()
     for i in range(3):
         d = laser.read_distance()

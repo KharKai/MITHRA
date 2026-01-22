@@ -4,7 +4,9 @@ from importlib.metadata import metadata
 
 import numpy as np
 
-from core_app.utils.mapping_parameters import MappingParameters
+from datetime import datetime
+
+from core_app.MITHRA_utils.mapping_parameters import MappingParameters
 
 import h5py as h5
 import PyMca5.PyMcaIO.EdfFile as edf
@@ -28,11 +30,14 @@ class DataSaving(MappingParameters):
     def build_config(self):
         config = {"project info": {"name": self.filename,
                                    "operator": self.operator,
-                                   "localisation": self.location,},
+                                   "localisation": self.location,
+                                   "date": datetime.today().strftime('%Y-%m-%d %H:%M:%S')},
                   "mapping parameters":{"x": self.x,
                                         "y": self.y,
                                         "pixel_size": self.pixel_size,
-                                        "acquisition_time": self.acquisition_time},}
+                                        "acquisition_time": self.acquisition_time,
+                                        "total duration": self.mapping_duration_str()},
+                  }
         return config
 
     def metadata_xrf(self, v, mA, comments):
