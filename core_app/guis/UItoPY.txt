@@ -1,0 +1,7 @@
+python -m PyQt5.uic.pyuic -x GUI_ConfigXRF.ui -o GUI_ConfigXRF.py
+
+python -m PyQt5.uic.pyuic -x GUI_ConfigXRF.ui -o GUI_ConfigXRF.py
+
+python -m PyQt5.uic.pyuic -x GUI_iMOXcsu2.ui -o GUI_iMOXcsu2.py
+
+python -m PyQt5.uic.pyuic -x GUI_MITHRA.ui -o GUI_MITHRA.py

@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<dpInst>
+    <language code="0x0409">
+        <dpinstTitle>Amptek Legacy DPP WinUSB Driver Installer</dpinstTitle>
+    
+        <welcomeTitle>Welcome to the Legacy DPP WinUSB Installer!</welcomeTitle>
+        <welcomeIntro>This wizard will walk you through updating the drivers for your Legacy DPP device.</welcomeIntro>
+    
+        <installHeaderTitle>Installing the driver software for your Legacy DPP device...</installHeaderTitle>
+
+        <finishTitle>Congratulations! You are finished installing your Legacy DPP device.</finishTitle>
+        <finishText>Enjoy using the Legacy DPP device.</finishText>
+
+    </language>
+    <icon>Amptek.ico</icon>
+    <watermarkPath>AmptekInstall.bmp</watermarkPath>
+    <enableNotListedLanguages/>
+    <suppressAddRemovePrograms/>
+</dpInst>
