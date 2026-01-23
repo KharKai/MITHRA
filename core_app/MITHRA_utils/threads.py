@@ -22,6 +22,21 @@ class ThreadPoint(QRunnable):
         self.fn(*self.args, **self.kwargs)
 
 
+class ThreadMap(QRunnable):
+    def __init__(self, fn, *args, **kwargs):
+        super(ThreadMap, self).__init__()
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = ThreadSignals()
+        self.kwargs['xrf_point'] = self.signals.progress
+        # self.kwargs['line_finished'] = self.signals.finished
+
+    @pyqtSlot()
+    def run(self):
+        self.fn(*self.args, **self.kwargs)
+
+
 class ThreadLaser(QRunnable):
     def __init__(self, fn, *args, **kwargs):
         super(ThreadLaser, self).__init__()

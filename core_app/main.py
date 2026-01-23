@@ -23,6 +23,7 @@ from MITHRA_IO.save import DataSaving
 from MITHRA_guis.interface_managment import GUIManagement
 
 from MITHRA_utils.mapping_parameters import MappingParameters
+from MITHRA_utils.data_acquisition import Data, DataAcquisition
 from MITHRA_utils.threads import *
 
 
@@ -36,6 +37,9 @@ class Master(GUIManagement):
         self.x_ray_detector = mca8000d.Device()
         self.optical_spectrometer_1 = None
         self.optical_spectrometer_2 = None
+
+        self.data_acquisition_status = (False, None, None)
+        self.q_data_acquisition_status = Queue()
 
         self.telemetric_laser = panasonic_hgc1100.Device()
         self.q_laser = Queue()
@@ -51,7 +55,19 @@ class Master(GUIManagement):
         self.pixel_size = self.cfg['mapping parameters']['pixel_size']
         self.acquisition_time = self.cfg['mapping parameters']['acquisition_time']
 
-        MappingParameters(self.x, self.y, self.pixel_size, self.acquisition_time)
+        self.params = MappingParameters(self.x,
+                                        self.y,
+                                        self.pixel_size,
+                                        self.acquisition_time)
+        self.data = Data(self.params.x,
+                         self.params.y,
+                         self.params.pixel_size,
+                         self.params.acquisition_time)
+        self.data_acquisition = DataAcquisition(self.params.x,
+                                                self.params.y,
+                                                self.params.pixel_size,
+                                                self.params.acquisition_time)
+
 
         self.threadpool = QThreadPool.globalInstance()
 
@@ -60,9 +76,14 @@ class Master(GUIManagement):
         self.y = int(self.line_edit_y.text())
         self.pixel_size = int(self.line_edit_pixel_size.text())
         self.acquisition_time = int(self.line_edit_acquisition_time.text())
-        param = MappingParameters(self.x, self.y, self.pixel_size, self.acquisition_time)
+        self.params = MappingParameters(self.x, self.y, self.pixel_size, self.acquisition_time)
+        self.data = Data(self.params.x, self.params.y, self.pixel_size, self.acquisition_time)
+        self.data_acquisition = DataAcquisition(self.params.x,
+                                                self.params.y,
+                                                self.params.pixel_size,
+                                                self.params.acquisition_time)
 
-        self.update_gui_params(param)
+        self.update_gui_params(self.params)
 
     def frame_consumer(self, frame):
         p_webcam = Process(target=self.webcam_process.get_frame)
@@ -94,6 +115,25 @@ class Master(GUIManagement):
             self.q_z_lock_status.put(self.z_lock_status)
         p_laser.terminate()
 
+    def data_consumer(self, xrf_point):
+        p_mapping = Process(target=self.data_acquisition.mapping_xrf, args=(self.q_data_acquisition_status,
+                                                                            self.x_ray_detector,
+                                                                            self.motor,))
+        # self.params.acquisition_time,
+        # self.params.pixel_number(),
+        # self.params.line_number(),
+        p_mapping.start()
+        time.sleep(0.1)
+        while self.data_acquisition_status[0]:
+            self.data_acquisition_status = self.q_data_acquisition_status.get()
+            print(self.data_acquisition_status)
+            shm = SharedMemory(name='shared_memory_xrf')
+            self.data.datacube_xrf = np.ndarray((self.params.line_number(), self.params.pixel_number(), 512), dtype=np.uint32, buffer=shm.buf)
+            xrf_point.emit(self.data.datacube_xrf)
+        shm.close()
+        shm.unlink()
+
+
     """ GUI interactions"""
     def closeEvent(self, event):
         response = QMessageBox.question(self, "Confirm", "Are you sure you want to leave?",
@@ -115,11 +155,20 @@ class Master(GUIManagement):
         self.push_button_start.setEnabled(False)
         self.push_button_stop.setEnabled(True)
 
-        params = MappingParameters(self.x, self.y, self.pixel_size, self.acquisition_time)
-        DataSaving(self.project_name, params)
+        self.update_params()
+        # DataSaving(self.project_name,
+        #            self.params.x,
+        #            self.params.y,
+        #            self.params.pixel_size,
+        #            self.params.acquisition_time)
+
         #TODO build cfg from params and saved it in project folder
         #TODO Check modality for proper threading procedure
 
+        thread_acquisition = ThreadMap(self.data_consumer)
+        thread_acquisition.signals.progress.connect(self.update_image_view)
+        self.threadpool.start(thread_acquisition)
+        self.data_acquisition_status = (True, 0, 0)
 
 
 

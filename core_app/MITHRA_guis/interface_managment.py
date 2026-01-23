@@ -36,21 +36,21 @@ class GUIManagement(QMainWindow, Ui_MainWindow):
         self.widget_plot_pl3.setBackground('w')
         self.widget_plot_swir.setBackground('w')
 
-        self.widget_map_Ca.ui.histogram.hide()
-        self.widget_map_Ca.ui.roiBtn.hide()
-        self.widget_map_Ca.ui.menuBtn.hide()
+        self.widget_map_1.ui.histogram.hide()
+        self.widget_map_1.ui.roiBtn.hide()
+        self.widget_map_1.ui.menuBtn.hide()
 
-        self.widget_map_Fe.ui.histogram.hide()
-        self.widget_map_Fe.ui.roiBtn.hide()
-        self.widget_map_Fe.ui.menuBtn.hide()
+        self.widget_map_2.ui.histogram.hide()
+        self.widget_map_2.ui.roiBtn.hide()
+        self.widget_map_2.ui.menuBtn.hide()
 
-        self.widget_map_Cu.ui.histogram.hide()
-        self.widget_map_Cu.ui.roiBtn.hide()
-        self.widget_map_Cu.ui.menuBtn.hide()
+        self.widget_map_3.ui.histogram.hide()
+        self.widget_map_3.ui.roiBtn.hide()
+        self.widget_map_3.ui.menuBtn.hide()
 
-        self.widget_map_Pb.ui.histogram.hide()
-        self.widget_map_Pb.ui.roiBtn.hide()
-        self.widget_map_Pb.ui.menuBtn.hide()
+        self.widget_map_4.ui.histogram.hide()
+        self.widget_map_4.ui.roiBtn.hide()
+        self.widget_map_4.ui.menuBtn.hide()
 
     def update_webcam_view(self, frame):
         self.label_webcam.setPixmap(QPixmap.fromImage(frame))
@@ -60,6 +60,14 @@ class GUIManagement(QMainWindow, Ui_MainWindow):
             self.line_edit_read_z.setText("%.2f" % value)
         else:
             self.line_edit_read_z.setText("---")
+
+    def update_image_view(self, data):
+        print('data in')
+        self.widget_map_1.setImage(np.flip(data.T[10, :, :], 1))
+        self.widget_map_2.setImage(np.flip(data.T[20, :, :], 1))
+        self.widget_map_3.setImage(np.flip(data.T[30, :, :], 1))
+        self.widget_map_4.setImage(np.flip(data.T[40, :, :], 1))
+        # self.widget_map_4.setImage(np.flip(self.datacube_xrf.T[176, 1:-1, 1:-1], 1))
 
     def update_gui_params(self, param):
         self.line_edit_motor_speed.setText(str(param.motor_speed()))
