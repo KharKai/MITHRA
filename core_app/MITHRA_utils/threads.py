@@ -29,8 +29,8 @@ class ThreadMap(QRunnable):
         self.args = args
         self.kwargs = kwargs
         self.signals = ThreadSignals()
-        self.kwargs['xrf_point'] = self.signals.progress
-        # self.kwargs['line_finished'] = self.signals.finished
+        self.kwargs['data_point'] = self.signals.progress
+        self.kwargs['line_finished'] = self.signals.finished
 
     @pyqtSlot()
     def run(self):

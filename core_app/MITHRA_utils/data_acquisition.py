@@ -33,10 +33,49 @@ class DataAcquisition(Data):
     def __init__(self, *args, **kwargs):
         super(DataAcquisition, self).__init__(*args, **kwargs)
 
-        self.is_running = False
+        self.analyse_type = None
+        self.name_shm: str = ''
+        self.arg_data_acquisition:tuple = ()
+
+        self.analyse_mode_map = True
+        self.analyse_mode_point = False
+
+        self.data_acquisition_xrf = True
+        self.data_acquisition_ris_lis = False
+        self.data_acquisition_swir = False
+
 
         # self.sh_mem_xrf = SharedMemory(create=True, size=2048 * self.pixel_number(), name='shared_memory_xrf')
         # self.sh_mem_ris_lis = SharedMemory(create=True, size=2048 * 4 * self.pixel_number(), name='shared_memory_ris_lis')
+
+    def data_acquisition_type_and_mode(self, q_data_acquisition_status, x_ray_detector, optical_spectrometer_1, optical_spectrometer_2, motor):
+        if self.analyse_mode_map:
+            if self.data_acquisition_xrf and self.data_acquisition_ris_lis and self.data_acquisition_swir:
+                self.analyse_type = self.mapping_xrf_ris_lis_swir
+
+            elif self.data_acquisition_xrf and self.data_acquisition_ris_lis:
+                self.analyse_type = self.mapping_xrf_ris_lis
+            elif self.data_acquisition_xrf and self.data_acquisition_swir:
+                self.analyse_type = self.mapping_swir
+            elif self.data_acquisition_ris_lis and self.data_acquisition_swir:
+                self.analyse_type = self.mapping_ris_lis_swir
+
+            elif self.data_acquisition_xrf:
+                self.analyse_type = self.mapping_xrf
+                self.arg_data_acquisition = (q_data_acquisition_status, x_ray_detector, motor,)
+                self.name_shm = 'shared_memory_xrf'
+            elif self.data_acquisition_ris_lis:
+                self.analyse_type = self.mapping_ris_lis
+                self.arg_data_acquisition = (q_data_acquisition_status, x_ray_detector, motor,)
+                self.name_shm = 'shared_memory_ris_lis'
+            elif self.data_acquisition_swir:
+                self.analyse_type = self.mapping_swir
+                self.arg_data_acquisition = (q_data_acquisition_status, x_ray_detector, motor,)
+                self.name_shm = 'shared_memory_swir'
+
+        elif self.analyse_mode_point:
+            pass
+
 
     def point_xrf(self, acquisition_time, x_ray_detector, single_point=True):
         if single_point:
@@ -76,6 +115,18 @@ class DataAcquisition(Data):
     # def line_swir(self, acquisition_time, pixel_number, optical_spectrometer):
     #     pass
 
+    def mapping_xrf_ris_lis_swir(self, q_status, x_ray_detector, motor):
+        pass
+
+    def mapping_xrf_ris_lis(self):
+        pass
+
+    def mapping_xrf_swir(self):
+        pass
+
+    def mapping_ris_lis_swir(self):
+        pass
+
     def mapping_xrf(self,  q_status, x_ray_detector, motor):# acquisition_time, pixel_number, line_number,
         print(self.acquisition_time)
         sh_mem_xrf = SharedMemory(create=True, size=2048 * self.pixel_number() * self.line_number(), name='shared_memory_xrf')
@@ -112,8 +163,9 @@ class DataAcquisition(Data):
     def mapping_swir(self):
         pass
 
-    def mapping_xrf_ris_lis(self):
-        pass
+
+
+
 
 
 

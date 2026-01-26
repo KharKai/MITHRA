@@ -42,7 +42,7 @@ class TelemetricLaserProcess:
     def get_distance(self, telemetric_laser, q_laser, q_z_lock_status, motor):
         try:
             while True:
-                print('getting distance...')
+                # print('getting distance...')
                 time.sleep(0.1)
                 # val = telemetric_laser.read_distance()
                 val = np.random.randint(0, 10, 1, dtype=np.uint16)
@@ -50,7 +50,8 @@ class TelemetricLaserProcess:
                 z_lock_status = q_z_lock_status.get()
                 print(z_lock_status)
                 if z_lock_status[0]:
-                    print('correcting')
+                    pass
+                    # print('correcting')
                     # self.correct_distance(val, z_lock_status[1], motor)
         except KeyboardInterrupt:
             pass

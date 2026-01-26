@@ -13,9 +13,9 @@ import PyMca5.PyMcaIO.EdfFile as edf
 
 
 
-class DataSaving(MappingParameters):
+class DataSaver(MappingParameters):
     def __init__(self, path, filename, operator, location, *args, **kwargs):
-        super(DataSaving, self).__init__(*args, **kwargs)
+        super(DataSaver, self).__init__(*args, **kwargs)
 
         self.path: str = path
         self.filename: str = filename
@@ -30,13 +30,16 @@ class DataSaving(MappingParameters):
     def build_config(self):
         config = {"project info": {"name": self.filename,
                                    "operator": self.operator,
-                                   "localisation": self.location,
-                                   "date": datetime.today().strftime('%Y-%m-%d %H:%M:%S')},
-                  "mapping parameters":{"x": self.x,
-                                        "y": self.y,
-                                        "pixel_size": self.pixel_size,
-                                        "acquisition_time": self.acquisition_time,
-                                        "total duration": self.mapping_duration_str()},
+                                   "localisation": self.location},
+                  "analyse list": [{"analyse type": {'map': True, 'point': False},
+                                    "analyse mode": {'xrf': True, 'ris_lis': False, 'swir': False},
+                                    "date": datetime.today().strftime('%Y-%m-%d %H:%M:%S'),
+                                    "mapping parameters":{"x": self.x,
+                                                          "y": self.y,
+                                                          "pixel_size": self.pixel_size,
+                                                          "acquisition_time": self.acquisition_time,
+                                                          "total duration": self.mapping_duration_str()}}],
+
                   }
         return config
 
