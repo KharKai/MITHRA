@@ -23,7 +23,7 @@ from MITHRA_IO.save import DataSaver
 
 from MITHRA_guis.interface_managment import GUIManagement
 
-from MITHRA_utils.mapping_parameters import MappingParameters
+from MITHRA_utils.acquisition_parameters import AcquisitionParameters
 from MITHRA_utils.data_acquisition import Data, DataAcquisition
 from MITHRA_utils.threads import *
 
@@ -42,8 +42,6 @@ class Master(GUIManagement):
         self.data_acquisition_status = (False, None, None)
         self.q_data_acquisition_status = Queue()
 
-
-
         self.telemetric_laser = panasonic_hgc1100.Device()
         self.q_laser = Queue()
         self.z_lock_status = (False, None) # package of z_lock_status and z_lock_distance
@@ -51,26 +49,24 @@ class Master(GUIManagement):
 
         self.cfg = DataLoader().load_cfg('G:\DATA\PyCharm Projects\MITHRA\core_app\MITHRA.cfg')
 
+        self.run_counter = 0
+
         self.project_name = self.cfg['project info']['name']
+        self.file_name = self.cfg['analyse list'][self.run_counter]['analyse name']
+        self.operator = self.cfg['project info']['operator']
+        self.localisation = self.cfg['project info']['location']
 
-        self.x = self.cfg['mapping parameters']['x']
-        self.y = self.cfg['mapping parameters']['y']
-        self.pixel_size = self.cfg['mapping parameters']['pixel_size']
-        self.acquisition_time = self.cfg['mapping parameters']['acquisition_time']
+        self.x = self.cfg['analyse list'][self.run_counter]['mapping parameters']['x']
+        self.y = self.cfg['analyse list'][self.run_counter]['mapping parameters']['y']
+        self.pixel_size = self.cfg['analyse list'][self.run_counter]['mapping parameters']['pixel_size']
+        self.acquisition_time = self.cfg['analyse list'][self.run_counter]['mapping parameters']['acquisition_time']
 
-        self.params = MappingParameters(self.x,
-                                        self.y,
-                                        self.pixel_size,
-                                        self.acquisition_time)
-        self.data = Data(self.params.x,
-                         self.params.y,
-                         self.params.pixel_size,
-                         self.params.acquisition_time)
-        self.data_acquisition = DataAcquisition(self.params.x,
-                                                self.params.y,
-                                                self.params.pixel_size,
-                                                self.params.acquisition_time)
+        self.global_data_acquisition_parameter= DataAcquisition(self.x, self.y, self.pixel_size,
+                                                                self.acquisition_time, self.project_name,
+                                                                self.file_name, self.operator, self.localisation)
 
+        self.saver = DataSaver(self.x, self.y, self.pixel_size, self.acquisition_time, self.project_name,
+                               self.file_name, self.operator, self.localisation)
 
         self.threadpool = QThreadPool.globalInstance()
 
@@ -79,22 +75,33 @@ class Master(GUIManagement):
         self.y = int(self.line_edit_y.text())
         self.pixel_size = int(self.line_edit_pixel_size.text())
         self.acquisition_time = int(self.line_edit_acquisition_time.text())
-        self.params = MappingParameters(self.x, self.y, self.pixel_size, self.acquisition_time)
-        self.data = Data(self.params.x, self.params.y, self.pixel_size, self.acquisition_time)
-        self.data_acquisition = DataAcquisition(self.params.x,
-                                                self.params.y,
-                                                self.params.pixel_size,
-                                                self.params.acquisition_time)
+
+        self.project_name = self.line_edit_project_name.text()
+        self.file_name = self.line_edit_file_name.text()
+        self.operator = self.line_edit_operator.text()
+        self.localisation = self.line_edit_localisation.text()
 
 
-        self.update_gui_params(self.params)
 
-    def update_config(self):
-        filename = self.line_edit_filename.text()
+        self.global_data_acquisition_parameter = DataAcquisition(self.x, self.y, self.pixel_size,
+                                                                 self.acquisition_time, self.project_name,
+                                                                 self.file_name, self.operator, self.localisation)
 
+        self.global_data_acquisition_parameter.data_acquisition_xrf = self.checkbox_xrf.isChecked()
+        self.global_data_acquisition_parameter.data_acquisition_ris_lis = self.checkbox_ris_lis.isChecked()
+        self.global_data_acquisition_parameter.data_acquisition_swir = self.checkbox_swir.isChecked()
 
-        DataSaver(filename, )
-        self.cfg = DataSaver.build_config()
+        self.global_data_acquisition_parameter.data_acquisition_type_and_mode(self.q_data_acquisition_status,
+                                                                              self.x_ray_detector,
+                                                                              None,
+                                                                              None,
+                                                                              self.motor)
+
+        self.update_gui_params(self.global_data_acquisition_parameter)
+
+        self.saver = DataSaver(self.x, self.y, self.pixel_size, self.acquisition_time, self.project_name,
+                               self.file_name, self.operator, self.localisation)
+        self.cfg = self.saver.build_config()
 
 
     def frame_consumer(self, frame):
@@ -116,6 +123,7 @@ class Master(GUIManagement):
         frame.emit(QImage('fonts\\nosignal.jpg'))
 
     def distance_consumer(self, distance):
+
         p_laser = Process(target=self.telemetric_laser_process.get_distance, args=(self.telemetric_laser,
                                                                                    self.q_laser,
                                                                                    self.q_z_lock_status,
@@ -130,24 +138,25 @@ class Master(GUIManagement):
     def data_consumer(self,  data_point, line_finished):
 
 
-        # p_mapping = Process(target=self.data_acquisition.mapping_xrf, args=(self.q_data_acquisition_status,
-        #                                                                     self.x_ray_detector,
-        #                                                                     self.motor,))
-        p_mapping = Process(target=self.data_acquisition.analyse_type, args=(*self.data_acquisition.arg_data_acquisition,))
+        p_mapping = Process(target=self.global_data_acquisition_parameter.analyse_type,
+                            args=(*self.global_data_acquisition_parameter.arg_data_acquisition,))
 
         p_mapping.start()
         time.sleep(0.1)
         while self.data_acquisition_status[0]:
             self.data_acquisition_status = self.q_data_acquisition_status.get()
             print(self.data_acquisition_status)
-            shm = SharedMemory(name=self.data_acquisition.name_shm)
-            self.data.datacube_xrf = np.ndarray((self.params.line_number(), self.params.pixel_number(), 512), dtype=np.uint32, buffer=shm.buf)
-            data_point.emit(self.data.datacube_xrf)
-            # if self.data_acquisition_status[2] == self.params.pixel_number():
+            shm = SharedMemory(name=self.global_data_acquisition_parameter.name_shm)
+            self.global_data_acquisition_parameter.datacube_xrf = np.ndarray((self.global_data_acquisition_parameter.line_number(),
+                                                                             self.global_data_acquisition_parameter.pixel_number(), 512),
+                                                                             dtype=np.uint32, buffer=shm.buf)
+            data_point.emit(self.global_data_acquisition_parameter.datacube_xrf)
+            # if self.data_acquisition_status[1] == self.params.pixel_number():
             #     line_finished.emit()
 
         shm.close()
         shm.unlink()
+        line_finished.emit()
 
 
     """ GUI interactions"""
@@ -172,6 +181,11 @@ class Master(GUIManagement):
         self.push_button_stop.setEnabled(True)
 
         self.update_params()
+        print('updated')
+
+        self.saver.save_cfg(self.cfg)
+
+        print('saved')
         # DataSaving(self.project_name,
         #            self.params.x,
         #            self.params.y,

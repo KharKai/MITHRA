@@ -62,7 +62,6 @@ class GUIManagement(QMainWindow, Ui_MainWindow):
             self.line_edit_read_z.setText("---")
 
     def update_image_view(self, data):
-        print('data in')
         self.widget_map_1.setImage(np.flip(data.T[10, :, :], 1))
         self.widget_map_2.setImage(np.flip(data.T[20, :, :], 1))
         self.widget_map_3.setImage(np.flip(data.T[30, :, :], 1))

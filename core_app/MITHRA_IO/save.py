@@ -2,36 +2,32 @@ import os
 import sys
 from importlib.metadata import metadata
 
+import pickle
+import json
+
 import numpy as np
 
 from datetime import datetime
 
-from core_app.MITHRA_utils.mapping_parameters import MappingParameters
+from core_app.MITHRA_utils.acquisition_parameters import AcquisitionParameters
 
 import h5py as h5
 import PyMca5.PyMcaIO.EdfFile as edf
 
 
-
-class DataSaver(MappingParameters):
-    def __init__(self, path, filename, operator, location, *args, **kwargs):
+class DataSaver(AcquisitionParameters):
+    def __init__(self, *args, **kwargs):
         super(DataSaver, self).__init__(*args, **kwargs)
 
-        self.path: str = path
-        self.filename: str = filename
-
-        self.operator: str = operator
-        self.location: str = location
-
     def build_metadata(self, xrf=False, ris_lis=False, swir=False):
-
         pass
 
     def build_config(self):
-        config = {"project info": {"name": self.filename,
+        config = {"project info": {"name": self.path,
                                    "operator": self.operator,
-                                   "localisation": self.location},
-                  "analyse list": [{"analyse type": {'map': True, 'point': False},
+                                   "localisation": self.localisation},
+                  "analyse list": [{"analyse name": self.filename,
+                                    "analyse type": {'map': True, 'point': False},
                                     "analyse mode": {'xrf': True, 'ris_lis': False, 'swir': False},
                                     "date": datetime.today().strftime('%Y-%m-%d %H:%M:%S'),
                                     "mapping parameters":{"x": self.x,
@@ -114,23 +110,7 @@ class DataSaver(MappingParameters):
         pass
 
     def save_cfg(self, cfg):
-        full_path = self.path + self.filename
-        with open(full_path, 'w') as f:
-            f.write('{')
-            for main_key, sub_key in cfg.items():
-                f.write('"')
-                f.write(str(main_key))
-                f.write('": \n\n{\n')
-                for key, value in sub_key.items():
-                    f.write('"')
-                    f.write(str(key) + ': ')
-                    if type(value) is int:
-                        f.write(str(value))
-                    else:
-                        f.write('"' + str(value) + '"')
-                    f.write(',\n')
-                f.write('},\n\n')
-            f.write('}')
+        json.dump(cfg, open(self.path + '\\' + datetime.today().strftime('%Y-%m-%d') + '.cfg', 'w'), indent=4)
 
 
     def save_backup_line(self):
@@ -139,6 +119,8 @@ class DataSaver(MappingParameters):
     def backup_directory_cleaner(self):
         pass
 
-# test = {'project info': {'name': 'Test_1', 'operator': 'Raphael Moreau', 'Localisation': 'C2RMF'}, 'mapping parameters': {'x': 1, 'y': 1, 'pixel_size': 500, 'acquisition_time': 80}}
-#
-# DataSaving('G:\DATA\PyCharm Projects\MITHRA\core_app', '\\test.cfg', 1, 1, 500, 80).save_cfg(test)
+
+# saver = DataSaver(1, 1, 500, 80, 'G:\DATA\PyCharm Projects\MITHRA\core_app', 'test_final', 'Raph', 'Antre du C2RMF')
+# test = saver.build_config()
+# print(test)
+# saver.save_cfg(test)

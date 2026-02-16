@@ -1,5 +1,12 @@
-class MappingParameters:
-    def __init__(self, x, y, pixel_size, acquisition_time):
+class AcquisitionParameters:
+    def __init__(self, x, y, pixel_size, acquisition_time, path, filename, operator, localisation):
+        self.path: str = path
+        self.filename: str = filename
+
+        self.operator: str = operator
+        self.localisation: str = localisation
+
+
         self.x = x # in cm
         self.y = y # in cm
 
