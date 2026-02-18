@@ -61,11 +61,16 @@ class GUIManagement(QMainWindow, Ui_MainWindow):
         else:
             self.line_edit_read_z.setText("---")
 
+    def update_progressbar(self, value, line_number):
+        self.line_edit_progression.setText(str(value + 1) + '/' + str(line_number))
+        progress = int((value + 1)  / line_number * 100)
+        self.acquisition_progressbar.setValue(progress)
+
     def update_image_view(self, data):
-        self.widget_map_1.setImage(np.flip(data.T[10, :, :], 1))
-        self.widget_map_2.setImage(np.flip(data.T[20, :, :], 1))
-        self.widget_map_3.setImage(np.flip(data.T[30, :, :], 1))
-        self.widget_map_4.setImage(np.flip(data.T[40, :, :], 1))
+        self.widget_map_1.setImage(np.flip(data.T[self.spinbox_low_map1.value(), :, :], 1))
+        self.widget_map_2.setImage(np.flip(data.T[self.spinbox_low_map2.value(), :, :], 1))
+        self.widget_map_3.setImage(np.flip(data.T[self.spinbox_low_map3.value(), :, :], 1))
+        self.widget_map_4.setImage(np.flip(data.T[self.spinbox_low_map4.value(), :, :], 1))
         # self.widget_map_4.setImage(np.flip(self.datacube_xrf.T[176, 1:-1, 1:-1], 1))
 
     def update_gui_params(self, param):

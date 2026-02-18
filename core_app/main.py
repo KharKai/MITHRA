@@ -97,6 +97,7 @@ class Master(GUIManagement):
                                                                               None,
                                                                               self.motor)
 
+
         self.update_gui_params(self.global_data_acquisition_parameter)
 
         self.saver = DataSaver(self.x, self.y, self.pixel_size, self.acquisition_time, self.project_name,
@@ -135,28 +136,36 @@ class Master(GUIManagement):
             self.q_z_lock_status.put(self.z_lock_status)
         p_laser.terminate()
 
-    def data_consumer(self,  data_point, line_finished):
-
-
+    def data_consumer(self, data_point, line_finished):
         p_mapping = Process(target=self.global_data_acquisition_parameter.analyse_type,
                             args=(*self.global_data_acquisition_parameter.arg_data_acquisition,))
 
         p_mapping.start()
         time.sleep(0.1)
         while self.data_acquisition_status[0]:
+        #     print('running')
             self.data_acquisition_status = self.q_data_acquisition_status.get()
-            print(self.data_acquisition_status)
-            shm = SharedMemory(name=self.global_data_acquisition_parameter.name_shm)
-            self.global_data_acquisition_parameter.datacube_xrf = np.ndarray((self.global_data_acquisition_parameter.line_number(),
-                                                                             self.global_data_acquisition_parameter.pixel_number(), 512),
-                                                                             dtype=np.uint32, buffer=shm.buf)
-            data_point.emit(self.global_data_acquisition_parameter.datacube_xrf)
-            # if self.data_acquisition_status[1] == self.params.pixel_number():
-            #     line_finished.emit()
+            if self.data_acquisition_status[0]:
+                shm = SharedMemory(name=self.global_data_acquisition_parameter.name_shm)
+                datacube = np.ndarray((self.global_data_acquisition_parameter.line_number(),
+                                             self.global_data_acquisition_parameter.pixel_number(), 512),
+                                             dtype=np.uint32, buffer=shm.buf)
+                self.global_data_acquisition_parameter.datacube_xrf = np.copy(datacube)
+
+                # data_point.emit(self.data_acquisition_status)
+                data_point.emit(self.global_data_acquisition_parameter.datacube_xrf)
+                if self.data_acquisition_status[2] == (self.global_data_acquisition_parameter.pixel_number() - 1) :
+                    # print('progress line')
+                    line_finished.emit(self.data_acquisition_status[1], self.global_data_acquisition_parameter.line_number())
 
         shm.close()
         shm.unlink()
-        line_finished.emit()
+        line_finished.emit(self.data_acquisition_status[1], self.global_data_acquisition_parameter.line_number())
+
+        print('finished')
+
+    def data_acquisition_finished(self):
+        QMessageBox.information(self, 'Information', 'Data Acquisition Complete', QMessageBox.Ok)
 
 
     """ GUI interactions"""
@@ -184,24 +193,14 @@ class Master(GUIManagement):
         print('updated')
 
         self.saver.save_cfg(self.cfg)
-
         print('saved')
-        # DataSaving(self.project_name,
-        #            self.params.x,
-        #            self.params.y,
-        #            self.params.pixel_size,
-        #            self.params.acquisition_time)
-
-        #TODO build cfg from params and saved it in project folder
-        #TODO Check modality for proper threading procedure
-
 
         thread_acquisition = ThreadMap(self.data_consumer)
         thread_acquisition.signals.progress.connect(self.update_image_view)
+        thread_acquisition.signals.finished.connect(self.update_progressbar)
+
         self.threadpool.start(thread_acquisition)
         self.data_acquisition_status = (True, 0, 0)
-
-
 
     @pyqtSlot()
     def on_push_button_stop_clicked(self):
@@ -223,6 +222,22 @@ class Master(GUIManagement):
     @pyqtSlot()
     def on_line_edit_acquisition_time_editingFinished(self):
         self.update_params()
+
+    @pyqtSlot(int)
+    def on_spinbox_low_map1_valueChanged(self):
+        self.update_image_view(self.global_data_acquisition_parameter.datacube_xrf)
+
+    @pyqtSlot(int)
+    def on_spinbox_low_map2_valueChanged(self):
+        self.update_image_view(self.global_data_acquisition_parameter.datacube_xrf)
+
+    @pyqtSlot(int)
+    def on_spinbox_low_map3_valueChanged(self):
+        self.update_image_view(self.global_data_acquisition_parameter.datacube_xrf)
+
+    @pyqtSlot(int)
+    def on_spinbox_low_map4_valueChanged(self):
+        self.update_image_view(self.global_data_acquisition_parameter.datacube_xrf)
 
     @pyqtSlot()
     def on_push_button_start_webcam_clicked(self):

@@ -978,6 +978,16 @@
                     </widget>
                    </item>
                    <item>
+                    <widget class="QProgressBar" name="acquisition_progressbar">
+                     <property name="value">
+                      <number>0</number>
+                     </property>
+                     <property name="textVisible">
+                      <bool>false</bool>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
                     <widget class="QLineEdit" name="line_edit_progression">
                      <property name="enabled">
                       <bool>false</bool>
@@ -2487,11 +2497,11 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="AnalysisMode_chckbox"/>
   <buttongroup name="AnalysisType_chckbox">
    <property name="exclusive">
     <bool>false</bool>
    </property>
   </buttongroup>
+  <buttongroup name="AnalysisMode_chckbox"/>
  </buttongroups>
 </ui>

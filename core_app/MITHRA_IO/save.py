@@ -9,13 +9,15 @@ import numpy as np
 
 from datetime import datetime
 
-from core_app.MITHRA_utils.acquisition_parameters import AcquisitionParameters
+# from core_app.MITHRA_utils.acquisition_parameters import AcquisitionParameters
 
 import h5py as h5
 import PyMca5.PyMcaIO.EdfFile as edf
 
+from core_app.MITHRA_utils.data_acquisition import DataAcquisition
 
-class DataSaver(AcquisitionParameters):
+
+class DataSaver(DataAcquisition):
     def __init__(self, *args, **kwargs):
         super(DataSaver, self).__init__(*args, **kwargs)
 
@@ -40,7 +42,7 @@ class DataSaver(AcquisitionParameters):
         return config
 
     def metadata_xrf(self, v, mA, comments):
-        metadata_xrf = {'operator': self.operator, 'location': self.location, 'size x': self.x, 'size y': self.y,
+        metadata_xrf = {'operator': self.operator, 'localisation': self.localisation, 'size x': self.x, 'size y': self.y,
                     'resolution': self.pixel_size, 'acquisition time': self.acquisition_time,
                     'mapping duration': self.mapping_duration_str(),
                     'X Ray Tube': {'device': 'Micro-focus X-ray source iMOXS with power supply CSU', 'X Ray kV': v, 'X Ray mA': mA},
@@ -49,7 +51,7 @@ class DataSaver(AcquisitionParameters):
         return metadata_xrf
 
     def metadata_ris_lis(self, comments):
-        metadata_ris_lis = {'operator': self.operator, 'location': self.location, 'size x': self.x, 'size y': self.y,
+        metadata_ris_lis = {'operator': self.operator, 'localisation': self.localisation, 'size x': self.x, 'size y': self.y,
                             'resolution': self.pixel_size, 'acquisition time': self.acquisition_time,
                             'mapping duration': self.mapping_duration_str(),
                             'Source1': '', 'Source2': '', 'Source3': '', 'Source4': '',
@@ -59,7 +61,7 @@ class DataSaver(AcquisitionParameters):
         return metadata_ris_lis
 
     def metadata_swir(self, comments):
-        metadata_ris_lis = {'operator': self.operator, 'location': self.location, 'size x': self.x, 'size y': self.y,
+        metadata_ris_lis = {'operator': self.operator, 'localisation': self.localisation, 'size x': self.x, 'size y': self.y,
                             'Source1': '',
                             'Source2': '', 'Source3': '', 'Source4': '',
                             'resolution': self.pixel_size, 'acquisition time': self.acquisition_time,
@@ -117,7 +119,21 @@ class DataSaver(AcquisitionParameters):
         pass
 
     def backup_directory_cleaner(self):
-        pass
+        path_xrf = 'C:\\DATA\\MITHRA\\temp\\BackupFilesXRF\\'
+        for f in os.listdir(path_xrf):
+            file_xrf = path_xrf + f
+            if os.path.isfile(file_xrf):
+                os.remove(file_xrf)
+        path_ris_lis = 'C:\\DATA\\MITHRA\\temp\\BackupFilesRISLIS\\'
+        for f in os.listdir(path_ris_lis):
+            file_ris_lis = path_ris_lis + f
+            if os.path.isfile(file_ris_lis):
+                os.remove(file_ris_lis)
+        path_swir = 'C:\\DATA\\MITHRA\\temp\\BackupFilesSWIR\\'
+        for f in os.listdir(path_swir):
+            file_swir = path_swir + f
+            if os.path.isfile(file_swir):
+                os.remove(file_swir)
 
 
 # saver = DataSaver(1, 1, 500, 80, 'G:\DATA\PyCharm Projects\MITHRA\core_app', 'test_final', 'Raph', 'Antre du C2RMF')

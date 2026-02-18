@@ -39,9 +39,9 @@ class Device:
         return self.measured_distance_mm
 
 
-if __name__ == '__main__':
-    laser = Device()
-    laser.connect()
-    for i in range(3):
-        d = laser.read_distance()
-        print(d)
+# if __name__ == '__main__':
+#     laser = Device()
+#     laser.connect()
+#     for i in range(3):
+#         d = laser.read_distance()
+#         print(d)

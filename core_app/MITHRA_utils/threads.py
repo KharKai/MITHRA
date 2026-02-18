@@ -3,7 +3,7 @@ from PyQt5.QtGui import *
 
 class ThreadSignals(QObject):
     started = pyqtSignal(int)
-    finished = pyqtSignal()
+    finished = pyqtSignal(int, int)
     progress = pyqtSignal(object)
     distance = pyqtSignal(float)
     webcam_update = pyqtSignal(QImage)

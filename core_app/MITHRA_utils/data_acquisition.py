@@ -98,15 +98,19 @@ class DataAcquisition(Data):
         pass
 
     def mapping_xrf(self,  q_status, x_ray_detector, motor):# acquisition_time, pixel_number, line_number,
-        print(self.acquisition_time)
-        sh_mem_xrf = SharedMemory(create=True, size=2048 * self.pixel_number() * self.line_number(), name='shared_memory_xrf')
-        map_xrf_buffer = np.ndarray((self.line_number(), self.pixel_number(), 512), dtype=np.uint32, buffer=sh_mem_xrf.buf)
+        line = self.line_number()
+        pixel = self.pixel_number()
+        try:
+            sh_mem_xrf = SharedMemory(create=True, size=2048 * pixel * line, name='shared_memory_xrf')
+        except FileExistsError:
+            sh_mem_xrf = SharedMemory(name='shared_memory_xrf')
+        map_xrf_buffer = np.ndarray((line, pixel, 512), dtype=np.uint32, buffer=sh_mem_xrf.buf)
         i = 0
-        while i < self.line_number():
+        while i < line:
             j = 0
             # q_status.put(True, i, j)
             start = time.perf_counter()
-            while j < self.pixel_number():
+            while j < pixel:
                 end = time.perf_counter()
                 clock = end - start
                 while clock < (self.acquisition_time /1000):
@@ -115,17 +119,22 @@ class DataAcquisition(Data):
                 start = time.perf_counter()
                 # xrf_spectrum = x_ray_detector.spectrum(True, True)[0] # Careful that XRF array is uint32
                 xrf_spectrum = np.random.randint(0, 1000, 512, dtype=np.uint32)
-                map_xrf_buffer[i, j, :] = xrf_spectrum
+                if i % 2 ==0:
+                    map_xrf_buffer[i, j, :] = xrf_spectrum
+                elif i%2 ==1:
+                    map_xrf_buffer[i, -j-1, :] = xrf_spectrum
                 q_status.put((True, i, j))
                 j += 1
 
             #self.datacube_xrf[i, :, :] = line_xrf_buffer
             i+=1
             time.sleep(1)
-        sh_mem_xrf.close()
-        sh_mem_xrf.unlink()
 
         q_status.put((False, i, j))
+        sh_mem_xrf.close()
+        time.sleep(1)
+        sh_mem_xrf.unlink()
+        print('done acquisition')
 
     def mapping_ris_lis(self):
         pass
