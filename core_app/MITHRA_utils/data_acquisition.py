@@ -18,10 +18,15 @@ class Data(AcquisitionParameters):
         self.spectrum_lis1 = np.zeros(1044)
         self.spectrum_lis2 = np.zeros(1044)
         self.spectrum_lis3 = np.zeros(1044)
-        self.spectrum_swir = [0, 0]
+        self.spectrum_swir = np.zeros(256)
+
+        self.datacube = np.ndarray
 
         self.datacube_xrf = np.zeros((self.line_number(), self.pixel_number(), 512))
-        self.datacube_ris_lis = np.zeros((self.line_number(), self.pixel_number() * 4, 1044))
+        self.datacube_ris_lis = np.zeros((self.line_number(), self.pixel_number(), 1044 * 4))
+        self.datacube_swir = np.zeros((self.line_number(), self.pixel_number(), 256))
+
+        self.datacube_shape = (self.line_number(), self.pixel_number(), 0)
 
         self.white_spectrum = np.zeros(1044)
         self.dark_spectrum = np.zeros(1044)
@@ -47,36 +52,68 @@ class DataAcquisition(Data):
         if self.analyse_mode_map:
             if self.data_acquisition_xrf and self.data_acquisition_ris_lis and self.data_acquisition_swir:
                 self.analyse_type = self.mapping_xrf_ris_lis_swir
+                self.arg_data_acquisition = (q_data_acquisition_status, x_ray_detector, optical_spectrometer_1,
+                                             optical_spectrometer_2, motor, )
+                self.name_shm = 'shared_memory_xrf_ris_lis_swir'
+                shape = list(self.datacube_shape)
+                shape[2] = 512 + 1044 * 4 + 256
+                self.datacube_shape = tuple(shape)
 
             elif self.data_acquisition_xrf and self.data_acquisition_ris_lis:
                 self.analyse_type = self.mapping_xrf_ris_lis
+                self.arg_data_acquisition = (q_data_acquisition_status, x_ray_detector, optical_spectrometer_1, motor,)
+                self.name_shm = 'shared_memory_xrf_ris_lis'
+                shape = list(self.datacube_shape)
+                shape[2] = 512 + 1044 * 4
+                self.datacube_shape = tuple(shape)
+
             elif self.data_acquisition_xrf and self.data_acquisition_swir:
-                self.analyse_type = self.mapping_swir
+                self.analyse_type = self.mapping_xrf_swir
+                self.arg_data_acquisition = (q_data_acquisition_status, x_ray_detector, optical_spectrometer_2, motor,)
+                self.name_shm = 'shared_memory_xrf_swir'
+                shape = list(self.datacube_shape)
+                shape[2] = 512 + 256
+                self.datacube_shape = tuple(shape)
+
             elif self.data_acquisition_ris_lis and self.data_acquisition_swir:
                 self.analyse_type = self.mapping_ris_lis_swir
+                self.arg_data_acquisition = (q_data_acquisition_status, optical_spectrometer_1, optical_spectrometer_2,
+                                             motor,)
+                self.name_shm = 'shared_memory_ris_lis_swir'
+                shape = list(self.datacube_shape)
+                shape[2] = 1044 * 4 + 256
+                self.datacube_shape = tuple(shape)
 
             elif self.data_acquisition_xrf:
                 self.analyse_type = self.mapping_xrf
                 self.arg_data_acquisition = (q_data_acquisition_status, x_ray_detector, motor,)
                 self.name_shm = 'shared_memory_xrf'
+                shape = list(self.datacube_shape)
+                shape[2] = 512
+                self.datacube_shape = tuple(shape)
+
             elif self.data_acquisition_ris_lis:
                 self.analyse_type = self.mapping_ris_lis
-                self.arg_data_acquisition = (q_data_acquisition_status, x_ray_detector, motor,)
+                self.arg_data_acquisition = (q_data_acquisition_status, optical_spectrometer_1, motor,)
                 self.name_shm = 'shared_memory_ris_lis'
+                shape = list(self.datacube_shape)
+                shape[2] = 1044 * 4
+                self.datacube_shape = tuple(shape)
+
             elif self.data_acquisition_swir:
                 self.analyse_type = self.mapping_swir
-                self.arg_data_acquisition = (q_data_acquisition_status, x_ray_detector, motor,)
+                self.arg_data_acquisition = (q_data_acquisition_status, optical_spectrometer_2, motor,)
                 self.name_shm = 'shared_memory_swir'
+                shape = list(self.datacube_shape)
+                shape[2] = 256
+                self.datacube_shape = tuple(shape)
 
         elif self.analyse_mode_point:
             pass
 
 
-    def point_xrf(self, acquisition_time, x_ray_detector, single_point=True):
-        if single_point:
-            start = time.perf_counter()
-        else:
-            pass
+    def point_xrf(self, acquisition_time, x_ray_detector):
+        start = time.perf_counter()
         end = time.perf_counter()
         clock = end - start
         while clock < (acquisition_time / 1000):
@@ -85,16 +122,22 @@ class DataAcquisition(Data):
         self.spectrum_xrf = x_ray_detector.spectrum(True, False)
         return
 
-    def mapping_xrf_ris_lis_swir(self, q_status, x_ray_detector, motor):
+    def point_ris_lis(self, acquisition_time, optical_spectrometer_1):
         pass
 
-    def mapping_xrf_ris_lis(self):
+    def point_swir(self, acquisition_time, optical_spectrometer_2):
         pass
 
-    def mapping_xrf_swir(self):
+    def mapping_xrf_ris_lis_swir(self, q_status, x_ray_detector, optical_spectrometer1, optical_spectrometer_2, motor):
         pass
 
-    def mapping_ris_lis_swir(self):
+    def mapping_xrf_ris_lis(self, q_status, x_ray_detector, optical_spectrometer1, optical_spectrometer_2, motor):
+        pass
+
+    def mapping_xrf_swir(self, q_status, x_ray_detector, optical_spectrometer1, optical_spectrometer_2, motor):
+        pass
+
+    def mapping_ris_lis_swir(self, q_status, x_ray_detector, optical_spectrometer1, optical_spectrometer_2, motor):
         pass
 
     def mapping_xrf(self,  q_status, x_ray_detector, motor):# acquisition_time, pixel_number, line_number,
@@ -108,7 +151,12 @@ class DataAcquisition(Data):
         i = 0
         while i < line:
             j = 0
-            # q_status.put(True, i, j)
+
+            # if i % 2 == 0:
+            #     motor.move_X((self.x * 10000), self.motor_speed(), idle=False)
+            # if i % 2 == 1:
+            #     motor.move_X(-(self.x * 10000), self.motor_speed(), idle=False)
+
             start = time.perf_counter()
             while j < pixel:
                 end = time.perf_counter()
@@ -134,7 +182,6 @@ class DataAcquisition(Data):
         sh_mem_xrf.close()
         time.sleep(1)
         sh_mem_xrf.unlink()
-        print('done acquisition')
 
     def mapping_ris_lis(self):
         pass

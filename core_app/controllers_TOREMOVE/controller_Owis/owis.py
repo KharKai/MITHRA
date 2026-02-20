@@ -72,7 +72,7 @@ class MotorOwis:
 
     def move_X(self, x, speed, idle):
         self.lib_ps35.PS35_SetPosFEx(1, 1, c_double(speed * 1000))
-        self.lib_ps35.PS35_MoveEx(1, 1, c_double(x *10), 0) #lenght in micrometer
+        self.lib_ps35.PS35_MoveEx(1, 1, c_double(x *10), 0) # length in micrometer
         if idle is True:
             self.idle()
 

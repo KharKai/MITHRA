@@ -3,8 +3,9 @@ from PyQt5.QtGui import *
 
 class ThreadSignals(QObject):
     started = pyqtSignal(int)
-    finished = pyqtSignal(int, int)
+    line_finished = pyqtSignal(int, int)
     progress = pyqtSignal(object)
+    completed = pyqtSignal()
     distance = pyqtSignal(float)
     webcam_update = pyqtSignal(QImage)
 
@@ -30,7 +31,8 @@ class ThreadMap(QRunnable):
         self.kwargs = kwargs
         self.signals = ThreadSignals()
         self.kwargs['data_point'] = self.signals.progress
-        self.kwargs['line_finished'] = self.signals.finished
+        self.kwargs['line_finished'] = self.signals.line_finished
+        self.kwargs['acquisition_completed'] = self.signals.completed
 
     @pyqtSlot()
     def run(self):

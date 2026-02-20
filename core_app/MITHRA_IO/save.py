@@ -24,11 +24,8 @@ class DataSaver(DataAcquisition):
     def build_metadata(self, xrf=False, ris_lis=False, swir=False):
         pass
 
-    def build_config(self):
-        config = {"project info": {"name": self.path,
-                                   "operator": self.operator,
-                                   "localisation": self.localisation},
-                  "analyse list": [{"analyse name": self.filename,
+    def analyse_info_builder(self):
+        analyse_list = {"analyse name": self.filename,
                                     "analyse type": {'map': True, 'point': False},
                                     "analyse mode": {'xrf': True, 'ris_lis': False, 'swir': False},
                                     "date": datetime.today().strftime('%Y-%m-%d %H:%M:%S'),
@@ -36,7 +33,14 @@ class DataSaver(DataAcquisition):
                                                           "y": self.y,
                                                           "pixel_size": self.pixel_size,
                                                           "acquisition_time": self.acquisition_time,
-                                                          "total duration": self.mapping_duration_str()}}],
+                                                          "total duration": self.mapping_duration_str()}}
+        return analyse_list
+
+    def config_builder(self, analyse_list):
+        config = {"project info": {"name": self.path,
+                                   "operator": self.operator,
+                                   "localisation": self.localisation},
+                  "analyse list": analyse_list,
 
                   }
         return config
@@ -111,29 +115,21 @@ class DataSaver(DataAcquisition):
     def raw(self):
         pass
 
-    def save_cfg(self, cfg):
+    def config_saver(self, cfg):
         json.dump(cfg, open(self.path + '\\' + datetime.today().strftime('%Y-%m-%d') + '.cfg', 'w'), indent=4)
 
 
-    def save_backup_line(self):
-        pass
+    def backup_line_saver(self, data, line_number):
+        map = edf.EdfFile('G:\\DATA\\PyCharm Projects\\MITHRA\\temp\\BackupFiles\\backup_inprogress_'
+                          + str(line_number) + '.edf', access="ab+")
+        map.WriteImage({}, data, Append=0)
 
     def backup_directory_cleaner(self):
-        path_xrf = 'C:\\DATA\\MITHRA\\temp\\BackupFilesXRF\\'
-        for f in os.listdir(path_xrf):
-            file_xrf = path_xrf + f
-            if os.path.isfile(file_xrf):
-                os.remove(file_xrf)
-        path_ris_lis = 'C:\\DATA\\MITHRA\\temp\\BackupFilesRISLIS\\'
-        for f in os.listdir(path_ris_lis):
-            file_ris_lis = path_ris_lis + f
-            if os.path.isfile(file_ris_lis):
-                os.remove(file_ris_lis)
-        path_swir = 'C:\\DATA\\MITHRA\\temp\\BackupFilesSWIR\\'
-        for f in os.listdir(path_swir):
-            file_swir = path_swir + f
-            if os.path.isfile(file_swir):
-                os.remove(file_swir)
+        path = 'G:\\DATA\\PyCharm Projects\\MITHRA\\temp\\BackupFiles\\'
+        for f in os.listdir(path):
+            file = path + f
+            if os.path.isfile(file):
+                os.remove(file)
 
 
 # saver = DataSaver(1, 1, 500, 80, 'G:\DATA\PyCharm Projects\MITHRA\core_app', 'test_final', 'Raph', 'Antre du C2RMF')

@@ -49,12 +49,13 @@ class Master(GUIManagement):
 
         self.cfg = DataLoader().load_cfg('G:\DATA\PyCharm Projects\MITHRA\core_app\MITHRA.cfg')
 
+        self.analyse_list = []
         self.run_counter = 0
 
         self.project_name = self.cfg['project info']['name']
         self.file_name = self.cfg['analyse list'][self.run_counter]['analyse name']
         self.operator = self.cfg['project info']['operator']
-        self.localisation = self.cfg['project info']['location']
+        self.localisation = self.cfg['project info']['localisation']
 
         self.x = self.cfg['analyse list'][self.run_counter]['mapping parameters']['x']
         self.y = self.cfg['analyse list'][self.run_counter]['mapping parameters']['y']
@@ -102,7 +103,6 @@ class Master(GUIManagement):
 
         self.saver = DataSaver(self.x, self.y, self.pixel_size, self.acquisition_time, self.project_name,
                                self.file_name, self.operator, self.localisation)
-        self.cfg = self.saver.build_config()
 
 
     def frame_consumer(self, frame):
@@ -136,36 +136,41 @@ class Master(GUIManagement):
             self.q_z_lock_status.put(self.z_lock_status)
         p_laser.terminate()
 
-    def data_consumer(self, data_point, line_finished):
+    def data_consumer(self, data_point, line_finished, acquisition_completed):
         p_mapping = Process(target=self.global_data_acquisition_parameter.analyse_type,
                             args=(*self.global_data_acquisition_parameter.arg_data_acquisition,))
 
         p_mapping.start()
         time.sleep(0.1)
         while self.data_acquisition_status[0]:
-        #     print('running')
             self.data_acquisition_status = self.q_data_acquisition_status.get()
             if self.data_acquisition_status[0]:
                 shm = SharedMemory(name=self.global_data_acquisition_parameter.name_shm)
-                datacube = np.ndarray((self.global_data_acquisition_parameter.line_number(),
-                                             self.global_data_acquisition_parameter.pixel_number(), 512),
-                                             dtype=np.uint32, buffer=shm.buf)
-                self.global_data_acquisition_parameter.datacube_xrf = np.copy(datacube)
+                datacube = np.ndarray(self.global_data_acquisition_parameter.datacube_shape,
+                                      dtype=np.uint32, buffer=shm.buf)
+                self.global_data_acquisition_parameter.datacube = np.copy(datacube)
 
-                # data_point.emit(self.data_acquisition_status)
-                data_point.emit(self.global_data_acquisition_parameter.datacube_xrf)
+
+                data_point.emit(self.global_data_acquisition_parameter.datacube)
                 if self.data_acquisition_status[2] == (self.global_data_acquisition_parameter.pixel_number() - 1) :
                     # print('progress line')
                     line_finished.emit(self.data_acquisition_status[1], self.global_data_acquisition_parameter.line_number())
+                    self.saver.backup_line_saver(self.global_data_acquisition_parameter.datacube[self.data_acquisition_status[1], :, :],
+                                                 self.data_acquisition_status[1])
 
         shm.close()
         shm.unlink()
-        line_finished.emit(self.data_acquisition_status[1], self.global_data_acquisition_parameter.line_number())
+        p_mapping.join()
+        p_mapping.terminate()
+        # line_finished.emit(self.data_acquisition_status[1], self.global_data_acquisition_parameter.line_number())
+        time.sleep(0.1)
+        acquisition_completed.emit()
 
-        print('finished')
-
-    def data_acquisition_finished(self):
-        QMessageBox.information(self, 'Information', 'Data Acquisition Complete', QMessageBox.Ok)
+    def acquisition_completed(self):
+        QMessageBox.information(self, "Information", "Data Acquisition Complete", QMessageBox.Ok)
+        self.push_button_start.setEnabled(True)
+        self.push_button_stop.setEnabled(False)
+        self.run_counter +=1
 
 
     """ GUI interactions"""
@@ -189,15 +194,20 @@ class Master(GUIManagement):
         self.push_button_start.setEnabled(False)
         self.push_button_stop.setEnabled(True)
 
-        self.update_params()
-        print('updated')
+        self.saver.backup_directory_cleaner()
 
-        self.saver.save_cfg(self.cfg)
-        print('saved')
+        self.update_params()
+
+        analyse_info = self.saver.analyse_info_builder()
+        self.analyse_list.append(analyse_info)
+        self.cfg = self.saver.config_builder(self.analyse_list)
+        self.saver.config_saver(self.cfg)
 
         thread_acquisition = ThreadMap(self.data_consumer)
         thread_acquisition.signals.progress.connect(self.update_image_view)
-        thread_acquisition.signals.finished.connect(self.update_progressbar)
+        thread_acquisition.signals.line_finished.connect(self.update_progressbar)
+        # thread_acquisition.signals.line_finished.connect(self.saver.save_backup_line)
+        thread_acquisition.signals.completed.connect(self.acquisition_completed)
 
         self.threadpool.start(thread_acquisition)
         self.data_acquisition_status = (True, 0, 0)
@@ -225,19 +235,19 @@ class Master(GUIManagement):
 
     @pyqtSlot(int)
     def on_spinbox_low_map1_valueChanged(self):
-        self.update_image_view(self.global_data_acquisition_parameter.datacube_xrf)
+        self.update_image_view(self.global_data_acquisition_parameter.datacube)
 
     @pyqtSlot(int)
     def on_spinbox_low_map2_valueChanged(self):
-        self.update_image_view(self.global_data_acquisition_parameter.datacube_xrf)
+        self.update_image_view(self.global_data_acquisition_parameter.datacube)
 
     @pyqtSlot(int)
     def on_spinbox_low_map3_valueChanged(self):
-        self.update_image_view(self.global_data_acquisition_parameter.datacube_xrf)
+        self.update_image_view(self.global_data_acquisition_parameter.datacube)
 
     @pyqtSlot(int)
     def on_spinbox_low_map4_valueChanged(self):
-        self.update_image_view(self.global_data_acquisition_parameter.datacube_xrf)
+        self.update_image_view(self.global_data_acquisition_parameter.datacube)
 
     @pyqtSlot()
     def on_push_button_start_webcam_clicked(self):
