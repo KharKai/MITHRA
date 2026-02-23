@@ -132,7 +132,22 @@ class DataAcquisition(Data):
         pass
 
     def mapping_xrf_ris_lis(self, q_status, x_ray_detector, optical_spectrometer1, optical_spectrometer_2, motor):
-        pass
+        line = self.line_number()
+        pixel = self.pixel_number()
+        try:
+            sh_mem_xrf_ris_lis = SharedMemory(create=True, size=2048 * 4 * 2048 * pixel * line, name='shared_memory_xrf_ris_lis')
+        except FileExistsError:
+            sh_mem_xrf_ris_lis = SharedMemory(name='shared_memory_xrf_ris_lis')
+        map_xrf_ris_lis_buffer = np.ndarray((line, pixel, 512), dtype=np.uint32, buffer=sh_mem_xrf_ris_lis.buf)
+        i = 0
+        while i < line:
+            j = 0
+
+            # if i % 2 == 0:
+            #     motor.move_X((self.x * 10000), self.motor_speed(), idle=False)
+            # if i % 2 == 1:
+            #     motor.move_X(-(self.x * 10000), self.motor_speed(), idle=False)
+
 
     def mapping_xrf_swir(self, q_status, x_ray_detector, optical_spectrometer1, optical_spectrometer_2, motor):
         pass
@@ -143,6 +158,10 @@ class DataAcquisition(Data):
     def mapping_xrf(self,  q_status, x_ray_detector, motor):# acquisition_time, pixel_number, line_number,
         line = self.line_number()
         pixel = self.pixel_number()
+
+        # x_ray_detector.spectrum(True, True)
+        # x_ray_detector.enable_MCA_MCS()
+
         try:
             sh_mem_xrf = SharedMemory(create=True, size=2048 * pixel * line, name='shared_memory_xrf')
         except FileExistsError:

@@ -4,6 +4,7 @@ import usb.core
 import usb.util
 import hashlib
 
+import matplotlib.pyplot as plt
 
 def checksum(data):
     """Calculate MD5 hash to return as the checksum 16 bytes block"""
@@ -102,7 +103,7 @@ def printplaintextStatus(status):
         return strStatus
 
 
-class device:
+class Device:
     """device provides request commands and responses from QE Pro spectrometer"""
 
     def __init__(self):
@@ -175,7 +176,7 @@ class device:
         footer[2] = 0xC3
         footer[3] = 0xC2
         pout = packmsg(header, footer)  # POUT = final bytes array sent to device (header + payload + checksum + footer))
-
+        print(pout)
         res = self.dev.write(self.eout, pout, self.timeout)  # Two endpoints available, might be interesting to use
 
         return res
@@ -303,6 +304,7 @@ class device:
     def get_integration_time(self):
         self.sendCmd(0x00, 0x00, 0x11, 0x00)
         res = self.recvCmd()
+        print(res)
         integration_time = bytes2int_little(bytearray(res[24:28]))
         integration_time = integration_time // 1000
         return integration_time
@@ -341,4 +343,22 @@ class device:
         device_status.append(self.get_serial_number())
         device_status.append(self.get_integration_time())
         device_status.append(self.get_trigger_mode())
-        
+
+
+if __name__ == '__main__':
+    dev = Device()
+    dev.connect_optical_spectrometer()
+    dev.set_integration_time(1000)
+    s = dev.get_spectrum()
+
+    i = dev.get_integration_time()
+    print(i)
+
+    print(s)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot(s[0])
+    plt.show()
+
+

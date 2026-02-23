@@ -11,10 +11,10 @@ from multiprocessing.shared_memory import SharedMemory
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
-from pyqtgraph.parametertree.parameterTypes import file
 
 
 from controllers_TOREMOVE.controller_Amptek import mca8000d
+from controllers_TOREMOVE.controller_QePro import qepro
 from controllers_TOREMOVE.controller_PanasonicHGC1100 import panasonic_hgc1100
 
 
@@ -36,7 +36,7 @@ class Master(GUIManagement):
 
         self.motor = None
         self.x_ray_detector = mca8000d.Device()
-        self.optical_spectrometer_1 = None
+        self.optical_spectrometer_1 = qepro.Device()
         self.optical_spectrometer_2 = None
 
         self.data_acquisition_status = (False, None, None)
@@ -275,6 +275,15 @@ class Master(GUIManagement):
         file = str(QFileDialog.getSaveFileName(self, 'Save Image'))
         img.save(file)
         #TODO save file in folder Photo within project
+
+    @pyqtSlot()
+    def on_push_button_connect_ris_lis_clicked(self):
+        try:
+            self.optical_spectrometer_1.connect_optical_spectrometer()
+            self.checkbox_ris_lis_connected.setCheckState(True)
+            QMessageBox.information(self, "Information", 'Spectrometer connected', QMessageBox.Ok)
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", 'No device connected\n Detail: ' + str(e), QMessageBox.Ok)
 
     @pyqtSlot()
     def on_push_button_connect_telemetric_clicked(self):
