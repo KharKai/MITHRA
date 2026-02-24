@@ -449,5 +449,5 @@ def saveSpectrum(filename, spectrum):
 
 
 if __name__ == "__main__":
-    dev = device()
+    dev = Device()
     dev.connect_xrf_spectrometer()

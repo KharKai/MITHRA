@@ -15,6 +15,7 @@ def checksum(data):
     for i in range(0, len(hexstr) - 1, 2):
         e = hexstr[i:i + 2]
         checksum[i // 2] = int(e, base=16)
+    # print(checksum.hex())
     return checksum
 
 
@@ -175,15 +176,29 @@ class Device:
         footer[1] = 0xC4
         footer[2] = 0xC3
         footer[3] = 0xC2
+
         pout = packmsg(header, footer)  # POUT = final bytes array sent to device (header + payload + checksum + footer))
-        print(pout)
         res = self.dev.write(self.eout, pout, self.timeout)  # Two endpoints available, might be interesting to use
 
         return res
 
     def recvCmd(self):
         """receives raw cmd over usb"""
-        devmsg = self.dev.read(self.ein, 4272, self.timeout)
+        #TEST
+        # for i in range(1, 4500):
+        #     print(i)
+        #     try:
+        #         devmsg = self.dev.read(self.ein, i, self.timeout)
+        #         print('yay')
+        #         chksm = (devmsg[-20:-4])
+        #         cntrl = checksum(devmsg[:-20])
+        #         assert chksm == cntrl
+        #         return devmsg
+        #     except:
+        #         print('passed')
+
+        devmsg = self.dev.read(self.ein, 4272, self.timeout) #4272
+
         chksm = (devmsg[-20:-4])
         cntrl = checksum(devmsg[:-20])
         assert chksm == cntrl
@@ -303,7 +318,9 @@ class Device:
 
     def get_integration_time(self):
         self.sendCmd(0x00, 0x00, 0x11, 0x00)
+        print('sent')
         res = self.recvCmd()
+        print('res')
         print(res)
         integration_time = bytes2int_little(bytearray(res[24:28]))
         integration_time = integration_time // 1000
@@ -348,17 +365,25 @@ class Device:
 if __name__ == '__main__':
     dev = Device()
     dev.connect_optical_spectrometer()
-    dev.set_integration_time(1000)
-    s = dev.get_spectrum()
 
-    i = dev.get_integration_time()
-    print(i)
+    # dev.set_integration_time(1000)
+    # print('integration time')
+    # s = dev.get_spectrum()
+    # print('spectrum')
 
-    print(s)
+    # i = dev.get_integration_time()
+    # print(i)
+
+    def test(qepro):
+        s = qepro.get_spectrum()[0]
+        return s
+
+    spectrum = test(dev)
+    print(spectrum)
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.plot(s[0])
+    ax.plot(spectrum)
     plt.show()
 
 

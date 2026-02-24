@@ -94,10 +94,9 @@ class Master(GUIManagement):
 
         self.global_data_acquisition_parameter.data_acquisition_type_and_mode(self.q_data_acquisition_status,
                                                                               self.x_ray_detector,
-                                                                              None,
+                                                                              self.optical_spectrometer_1,
                                                                               None,
                                                                               self.motor)
-
 
         self.update_gui_params(self.global_data_acquisition_parameter)
 
@@ -124,7 +123,6 @@ class Master(GUIManagement):
         frame.emit(QImage('fonts\\nosignal.jpg'))
 
     def distance_consumer(self, distance):
-
         p_laser = Process(target=self.telemetric_laser_process.get_distance, args=(self.telemetric_laser,
                                                                                    self.q_laser,
                                                                                    self.q_z_lock_status,
@@ -138,8 +136,8 @@ class Master(GUIManagement):
 
     def data_consumer(self, data_point, line_finished, acquisition_completed):
         p_mapping = Process(target=self.global_data_acquisition_parameter.analyse_type,
-                            args=(*self.global_data_acquisition_parameter.arg_data_acquisition,))
-
+                            args=(self.q_data_acquisition_status,))
+                            # args=(*self.global_data_acquisition_parameter.arg_data_acquisition,)), self.optical_spectrometer_1, self.motor
         p_mapping.start()
         time.sleep(0.1)
         while self.data_acquisition_status[0]:
@@ -173,6 +171,8 @@ class Master(GUIManagement):
         self.run_counter +=1
 
 
+
+
     """ GUI interactions"""
     def closeEvent(self, event):
         response = QMessageBox.question(self, "Confirm", "Are you sure you want to leave?",
@@ -198,7 +198,11 @@ class Master(GUIManagement):
 
         self.update_params()
 
-        analyse_info = self.saver.analyse_info_builder()
+        analyse_info = self.saver.analyse_info_builder(self.global_data_acquisition_parameter.analyse_mode_map,
+                                                       self.global_data_acquisition_parameter.analyse_mode_point,
+                                                       self.global_data_acquisition_parameter.data_acquisition_xrf,
+                                                       self.global_data_acquisition_parameter.data_acquisition_ris_lis,
+                                                       self.global_data_acquisition_parameter.data_acquisition_swir)
         self.analyse_list.append(analyse_info)
         self.cfg = self.saver.config_builder(self.analyse_list)
         self.saver.config_saver(self.cfg)
@@ -206,7 +210,6 @@ class Master(GUIManagement):
         thread_acquisition = ThreadMap(self.data_consumer)
         thread_acquisition.signals.progress.connect(self.update_image_view)
         thread_acquisition.signals.line_finished.connect(self.update_progressbar)
-        # thread_acquisition.signals.line_finished.connect(self.saver.save_backup_line)
         thread_acquisition.signals.completed.connect(self.acquisition_completed)
 
         self.threadpool.start(thread_acquisition)

@@ -24,10 +24,12 @@ class DataSaver(DataAcquisition):
     def build_metadata(self, xrf=False, ris_lis=False, swir=False):
         pass
 
-    def analyse_info_builder(self):
+    def analyse_info_builder(self, mode_map, mode_point, data_acquisition_xrf, data_acquisition_ris_lis, data_acquisition_swir):
         analyse_list = {"analyse name": self.filename,
-                                    "analyse type": {'map': True, 'point': False},
-                                    "analyse mode": {'xrf': True, 'ris_lis': False, 'swir': False},
+                                    "analyse type": {'map': mode_map, 'point': mode_point},
+                                    "analyse mode": {'xrf': data_acquisition_xrf,
+                                                     'ris_lis': data_acquisition_ris_lis,
+                                                     'swir': data_acquisition_swir},
                                     "date": datetime.today().strftime('%Y-%m-%d %H:%M:%S'),
                                     "mapping parameters":{"x": self.x,
                                                           "y": self.y,
