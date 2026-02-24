@@ -171,8 +171,6 @@ class Master(GUIManagement):
         self.run_counter +=1
 
 
-
-
     """ GUI interactions"""
     def closeEvent(self, event):
         response = QMessageBox.question(self, "Confirm", "Are you sure you want to leave?",

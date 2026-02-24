@@ -6,6 +6,7 @@ from multiprocessing.shared_memory import SharedMemory
 
 from core_app.controllers_TOREMOVE.controller_Amptek import mca8000d
 from core_app.controllers_TOREMOVE.controller_QePro import qepro
+from core_app.controllers_TOREMOVE.controller_Owis import owis
 
 from core_app.MITHRA_utils.acquisition_parameters import AcquisitionParameters
 
@@ -49,12 +50,11 @@ class DataAcquisition(Data):
         self.data_acquisition_swir = False
 
 
-    def data_acquisition_type_and_mode(self, q_data_acquisition_status, x_ray_detector, optical_spectrometer_1, optical_spectrometer_2, motor):
+    def data_acquisition_type_and_mode(self, q_data_acquisition_status):#, x_ray_detector, optical_spectrometer_1, optical_spectrometer_2, motor
         if self.analyse_mode_map:
             if self.data_acquisition_xrf and self.data_acquisition_ris_lis and self.data_acquisition_swir:
                 self.analyse_type = self.mapping_xrf_ris_lis_swir
-                self.arg_data_acquisition = (q_data_acquisition_status, x_ray_detector, optical_spectrometer_1,
-                                             optical_spectrometer_2, motor, )
+                self.arg_data_acquisition = (q_data_acquisition_status, )
                 self.name_shm = 'shared_memory_xrf_ris_lis_swir'
                 shape = list(self.datacube_shape)
                 shape[2] = 512 + 1044 * 4 + 256
@@ -63,7 +63,7 @@ class DataAcquisition(Data):
 
             elif self.data_acquisition_xrf and self.data_acquisition_ris_lis:
                 self.analyse_type = self.mapping_xrf_ris_lis
-                self.arg_data_acquisition = (q_data_acquisition_status, x_ray_detector, optical_spectrometer_1, motor,)
+                self.arg_data_acquisition = (q_data_acquisition_status,)
                 self.name_shm = 'shared_memory_xrf_ris_lis'
                 shape = list(self.datacube_shape)
                 shape[2] = 512 + 1044 * 4
@@ -72,7 +72,7 @@ class DataAcquisition(Data):
 
             elif self.data_acquisition_xrf and self.data_acquisition_swir:
                 self.analyse_type = self.mapping_xrf_swir
-                self.arg_data_acquisition = (q_data_acquisition_status, x_ray_detector, optical_spectrometer_2, motor,)
+                self.arg_data_acquisition = (q_data_acquisition_status,)
                 self.name_shm = 'shared_memory_xrf_swir'
                 shape = list(self.datacube_shape)
                 shape[2] = 512 + 256
@@ -81,8 +81,7 @@ class DataAcquisition(Data):
 
             elif self.data_acquisition_ris_lis and self.data_acquisition_swir:
                 self.analyse_type = self.mapping_ris_lis_swir
-                self.arg_data_acquisition = (q_data_acquisition_status, optical_spectrometer_1, optical_spectrometer_2,
-                                             motor,)
+                self.arg_data_acquisition = (q_data_acquisition_status,)
                 self.name_shm = 'shared_memory_ris_lis_swir'
                 shape = list(self.datacube_shape)
                 shape[2] = 1044 * 4 + 256
@@ -91,7 +90,7 @@ class DataAcquisition(Data):
 
             elif self.data_acquisition_xrf:
                 self.analyse_type = self.mapping_xrf
-                self.arg_data_acquisition = (q_data_acquisition_status, x_ray_detector, motor,)
+                self.arg_data_acquisition = (q_data_acquisition_status,)
                 self.name_shm = 'shared_memory_xrf'
                 shape = list(self.datacube_shape)
                 shape[2] = 512
@@ -100,7 +99,7 @@ class DataAcquisition(Data):
 
             elif self.data_acquisition_ris_lis:
                 self.analyse_type = self.mapping_ris_lis
-                self.arg_data_acquisition = (q_data_acquisition_status, optical_spectrometer_1, motor,)
+                self.arg_data_acquisition = (q_data_acquisition_status,)
                 self.name_shm = 'shared_memory_ris_lis'
                 shape = list(self.datacube_shape)
                 shape[2] = 1044 * 4
@@ -109,7 +108,7 @@ class DataAcquisition(Data):
 
             elif self.data_acquisition_swir:
                 self.analyse_type = self.mapping_swir
-                self.arg_data_acquisition = (q_data_acquisition_status, optical_spectrometer_2, motor,)
+                self.arg_data_acquisition = (q_data_acquisition_status,)
                 self.name_shm = 'shared_memory_swir'
                 shape = list(self.datacube_shape)
                 shape[2] = 256
@@ -139,9 +138,18 @@ class DataAcquisition(Data):
     def mapping_xrf_ris_lis_swir(self, q_status, x_ray_detector, optical_spectrometer1, optical_spectrometer_2, motor):
         pass
 
-    def mapping_xrf_ris_lis(self, q_status, x_ray_detector, optical_spectrometer_1, motor):
+    def mapping_xrf_ris_lis(self, q_status):
         line = self.line_number()
         pixel = self.pixel_number()
+
+        x_ray_detector = mca8000d.Device()
+        x_ray_detector.connect_xrf_spectrometer()
+
+        optical_spectrometer_1 = qepro.Device()
+        optical_spectrometer_1.connect_optical_spectrometer()
+
+        motor = owis.MotorOwis()
+        motor.connect_motor()
 
         try:
             sh_mem_xrf_ris_lis = SharedMemory(create=True, size=(1044 * 16 + 2048) * pixel * line, name='shared_memory_xrf_ris_lis')
@@ -210,9 +218,15 @@ class DataAcquisition(Data):
     def mapping_ris_lis_swir(self, q_status, x_ray_detector, optical_spectrometer1, optical_spectrometer_2, motor):
         pass
 
-    def mapping_xrf(self,  q_status, x_ray_detector, motor):
+    def mapping_xrf(self,  q_status):
         line = self.line_number()
         pixel = self.pixel_number()
+
+        x_ray_detector = mca8000d.Device()
+        x_ray_detector.connect_xrf_spectrometer()
+
+        motor = owis.MotorOwis()
+        motor.connect_motor()
 
         try:
             sh_mem_xrf = SharedMemory(create=True, size=2048 * pixel * line, name='shared_memory_xrf')
@@ -262,6 +276,9 @@ class DataAcquisition(Data):
 
         optical_spectrometer_1 = qepro.Device()
         optical_spectrometer_1.connect_optical_spectrometer()
+
+        motor = owis.MotorOwis()
+        motor.connect_motor()
 
         try:
             sh_mem_ris_lis = SharedMemory(create=True, size=1044 * 16 * pixel * line,
