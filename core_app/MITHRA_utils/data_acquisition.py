@@ -148,8 +148,8 @@ class DataAcquisition(Data):
         optical_spectrometer_1 = qepro.Device()
         optical_spectrometer_1.connect_optical_spectrometer()
 
-        motor = owis.MotorOwis()
-        motor.connect_motor()
+        # motor = owis.MotorOwis()
+        # motor.connect_motor()
 
         try:
             sh_mem_xrf_ris_lis = SharedMemory(create=True, size=(1044 * 16 + 2048) * pixel * line, name='shared_memory_xrf_ris_lis')
@@ -222,11 +222,11 @@ class DataAcquisition(Data):
         line = self.line_number()
         pixel = self.pixel_number()
 
-        x_ray_detector = mca8000d.Device()
-        x_ray_detector.connect_xrf_spectrometer()
-
-        motor = owis.MotorOwis()
-        motor.connect_motor()
+        # x_ray_detector = mca8000d.Device()
+        # x_ray_detector.connect_xrf_spectrometer()
+        #
+        # motor = owis.MotorOwis()
+        # motor.connect_motor()
 
         try:
             sh_mem_xrf = SharedMemory(create=True, size=2048 * pixel * line, name='shared_memory_xrf')
@@ -277,8 +277,8 @@ class DataAcquisition(Data):
         optical_spectrometer_1 = qepro.Device()
         optical_spectrometer_1.connect_optical_spectrometer()
 
-        motor = owis.MotorOwis()
-        motor.connect_motor()
+        # motor = owis.MotorOwis()
+        # motor.connect_motor()
 
         try:
             sh_mem_ris_lis = SharedMemory(create=True, size=1044 * 16 * pixel * line,
