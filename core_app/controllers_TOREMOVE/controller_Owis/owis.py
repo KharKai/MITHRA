@@ -7,7 +7,7 @@ import serial.tools.list_ports
 class MotorOwis:
 
     def __init__(self):
-        self.lib_ps35 = cdll.LoadLibrary('C:\\DATA\\AppMITHRA\\core_AppMITHRA\\controllers_TOREMOVE\\controller_Owis\\dll\\ps35.dll')
+        self.lib_ps35 = cdll.LoadLibrary("G:\\DATA\\PyCharm Projects\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_Owis\\dll\\ps35.dll")
         # self.lib_ps35 = ctypes.CDLL('C:\\DATA\\AppMITHRA\\core_AppMITHRA\\controllers_TOREMOVE\\controller_Owis\\dll\\ps35.dll', winmode=0)
         self.connection = None
         self.ps35 = None
