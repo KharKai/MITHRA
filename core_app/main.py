@@ -48,6 +48,7 @@ class Master(GUIManagement):
         self.q_z_lock_status = Queue()
 
         self.cfg = DataLoader().load_cfg('G:\DATA\PyCharm Projects\MITHRA\core_app\MITHRA.cfg')
+        # self.cfg = DataLoader().load_cfg('C:\Data\MITHRA\corre_app\MITHRA.cfg')
 
         self.analyse_list = []
         self.run_counter = 0

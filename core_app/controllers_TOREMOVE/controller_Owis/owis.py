@@ -8,7 +8,7 @@ class Device:
 
     def __init__(self):
         self.lib_ps35 = cdll.LoadLibrary("G:\\DATA\\PyCharm Projects\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_Owis\\dll\\ps35.dll")
-        # self.lib_ps35 = ctypes.CDLL('C:\\DATA\\AppMITHRA\\core_AppMITHRA\\controllers_TOREMOVE\\controller_Owis\\dll\\ps35.dll', winmode=0)
+        # self.lib_ps35 = cdll.LoadLibrary('C:\\DATA\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_Owis\\dll\\ps35.dll')
         self.connection = None
         self.ps35 = None
         self.portCOM = None
