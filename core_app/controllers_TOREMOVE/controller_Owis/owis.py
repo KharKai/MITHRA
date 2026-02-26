@@ -4,7 +4,7 @@ import ctypes
 from ctypes import cdll, c_double
 import serial.tools.list_ports
 
-class MotorOwis:
+class Device:
 
     def __init__(self):
         self.lib_ps35 = cdll.LoadLibrary("G:\\DATA\\PyCharm Projects\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_Owis\\dll\\ps35.dll")
@@ -92,7 +92,7 @@ class MotorOwis:
         self.lib_ps35.PS35_Stop(1, axis)
 
 if __name__ == '__main__':
-    motor = MotorOwis()
+    motor = Device()
     motor.connect_motor()
 
     motor.move_X(2000, 10, True)

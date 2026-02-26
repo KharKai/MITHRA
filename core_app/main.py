@@ -12,7 +12,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
-
+from controllers_TOREMOVE.controller_Owis import owis
 from controllers_TOREMOVE.controller_Amptek import mca8000d
 from controllers_TOREMOVE.controller_QePro import qepro
 from controllers_TOREMOVE.controller_PanasonicHGC1100 import panasonic_hgc1100
@@ -34,7 +34,7 @@ class Master(GUIManagement):
 
         self.gui = GUIManagement()
 
-        self.motor = None
+        self.motor = owis.Device()
         self.x_ray_detector = mca8000d.Device()
         self.optical_spectrometer_1 = qepro.Device()
         self.optical_spectrometer_2 = None
@@ -278,6 +278,15 @@ class Master(GUIManagement):
         #TODO save file in folder Photo within project
 
     @pyqtSlot()
+    def on_push_button_connect_xrf_clicked(self):
+        try:
+            self.x_ray_detector.connect_xrf_spectrometer()
+            self.checkbox_xrf_connected.setCheckState(True)
+            QMessageBox.information(self, "Information", 'Detector connected', QMessageBox.Ok)
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", 'No device connected\n Detail: ' + str(e), QMessageBox.Ok)
+
+    @pyqtSlot()
     def on_push_button_connect_ris_lis_clicked(self):
         try:
             self.optical_spectrometer_1.connect_optical_spectrometer()
@@ -285,6 +294,18 @@ class Master(GUIManagement):
             QMessageBox.information(self, "Information", 'Spectrometer connected', QMessageBox.Ok)
         except Exception as e:
             QMessageBox.warning(self, "Warning", 'No device connected\n Detail: ' + str(e), QMessageBox.Ok)
+
+    @pyqtSlot()
+    def on_push_button_connect_motor_clicked(self):
+        try:
+            self.motor.connect_motor()
+            self.slider_motorspeed_x.setValue(7)
+            self.slider_motorspeed_x.setValue(7)
+            self.slider_motorspeed_x.setValue(7)
+            self.checkbox_motor_connected.setCheckState(True)
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
+
 
     @pyqtSlot()
     def on_push_button_connect_telemetric_clicked(self):
