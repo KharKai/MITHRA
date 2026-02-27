@@ -48,7 +48,7 @@ class Master(GUIManagement):
         self.q_z_lock_status = Queue()
 
         self.cfg = DataLoader().load_cfg('G:\DATA\PyCharm Projects\MITHRA\core_app\MITHRA.cfg')
-        # self.cfg = DataLoader().load_cfg('C:\Data\MITHRA\corre_app\MITHRA.cfg')
+        # self.cfg = DataLoader().load_cfg('C:\Data\MITHRA\core_app\MITHRA.cfg')
 
         self.analyse_list = []
         self.run_counter = 0
@@ -301,9 +301,10 @@ class Master(GUIManagement):
         try:
             self.motor.connect_motor()
             self.slider_motorspeed_x.setValue(7)
-            self.slider_motorspeed_x.setValue(7)
-            self.slider_motorspeed_x.setValue(7)
+            self.slider_motorspeed_y.setValue(7)
+            self.slider_motorspeed_z.setValue(7)
             self.checkbox_motor_connected.setCheckState(True)
+            QMessageBox.information(self, "Information", 'Linear stages connected', QMessageBox.Ok)
         except Exception as e:
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
 
