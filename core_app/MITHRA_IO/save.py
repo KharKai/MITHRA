@@ -121,12 +121,17 @@ class DataSaver(DataAcquisition):
         json.dump(cfg, open(self.path + '\\' + datetime.today().strftime('%Y-%m-%d') + 'MITHRA.cfg', 'w'), indent=4)
 
     def backup_line_saver(self, data, line_number):
-        map = edf.EdfFile('G:\\DATA\\PyCharm Projects\\MITHRA\\temp\\BackupFiles\\backup_inprogress_'
+        # map = edf.EdfFile('G:\\DATA\\PyCharm Projects\\MITHRA\\temp\\BackupFiles\\backup_inprogress_'
+        #                   + str(line_number) + '.edf', access="ab+")
+
+        map = edf.EdfFile('C:\\DATA\\MITHRA\\temp\\BackupFiles\\backup_inprogress_'
                           + str(line_number) + '.edf', access="ab+")
+
         map.WriteImage({}, data, Append=0)
 
     def backup_directory_cleaner(self):
-        path = 'G:\\DATA\\PyCharm Projects\\MITHRA\\temp\\BackupFiles\\'
+        # path = 'G:\\DATA\\PyCharm Projects\\MITHRA\\temp\\BackupFiles\\'
+        path = 'C:\\DATA\\MITHRA\\temp\\BackupFiles\\'
         for f in os.listdir(path):
             file = path + f
             if os.path.isfile(file):

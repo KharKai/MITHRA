@@ -93,11 +93,7 @@ class Master(GUIManagement):
         self.global_data_acquisition_parameter.data_acquisition_ris_lis = self.checkbox_ris_lis.isChecked()
         self.global_data_acquisition_parameter.data_acquisition_swir = self.checkbox_swir.isChecked()
 
-        self.global_data_acquisition_parameter.data_acquisition_type_and_mode(self.q_data_acquisition_status,
-                                                                              self.x_ray_detector,
-                                                                              self.optical_spectrometer_1,
-                                                                              None,
-                                                                              self.motor)
+        self.global_data_acquisition_parameter.data_acquisition_type_and_mode(self.q_data_acquisition_status)
 
         self.update_gui_params(self.global_data_acquisition_parameter)
 
