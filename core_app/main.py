@@ -337,6 +337,96 @@ class Master(GUIManagement):
         self.push_button_unlock_z.setEnabled(False)
         self.z_lock_status = (False, None)
 
+    @pyqtSlot()
+    def on_push_button_move_up_clicked(self):
+        try:
+            factor = 1
+            if self.combobox_scale.currentText() == 'cm':
+                factor = 10000
+            elif self.combobox_scale.currentText() == 'mm':
+                factor = 1000
+            elif self.combobox_scale.currentText() == 'µm':
+                factor = 1
+            move = float(self.line_edit_travel_distance.text()) * factor
+            self.motor.move_Y(-move, self.motor_speed_y, False)
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
+
+    @pyqtSlot()
+    def on_push_button_move_down_clicked(self):
+        try:
+            factor = 1
+            if self.combobox_scale.currentText() == 'cm':
+                factor = 10000
+            elif self.combobox_scale.currentText() == 'mm':
+                factor = 1000
+            elif self.combobox_scale.currentText() == 'µm':
+                factor = 1
+            move = float(self.line_edit_travel_distance.text()) * factor
+            self.motor.move_Y(move, self.motor_speed_y, False)
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
+
+    @pyqtSlot()
+    def on_push_button_move_left_clicked(self):
+        try:
+            factor = 1
+            if self.combobox_scale.currentText() == 'cm':
+                factor = 10000
+            elif self.combobox_scale.currentText() == 'mm':
+                factor = 1000
+            elif self.combobox_scale.currentText() == 'µm':
+                factor = 1
+            move = float(self.line_edit_travel_distance.text()) * factor
+            self.motor.move_X(-move, self.motor_speed_y, False)
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
+
+    @pyqtSlot()
+    def on_push_button_move_right_clicked(self):
+        try:
+            factor = 1
+            if self.combobox_scale.currentText() == 'cm':
+                factor = 10000
+            elif self.combobox_scale.currentText() == 'mm':
+                factor = 1000
+            elif self.combobox_scale.currentText() == 'µm':
+                factor = 1
+            move = float(self.line_edit_travel_distance.text()) * factor
+            self.motor.move_X(move, self.motor_speed_y, False)
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
+
+    @pyqtSlot()
+    def on_push_button_move_forward_clicked(self):
+        try:
+            factor = 1
+            if self.combobox_scale.currentText() == 'cm':
+                factor = 10000
+            elif self.combobox_scale.currentText() == 'mm':
+                factor = 1000
+            elif self.combobox_scale.currentText() == 'µm':
+                factor = 1
+            move = float(self.line_edit_travel_distance.text()) * factor
+            self.motor.move_Z(move, self.motor_speed_y, False)
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
+
+    @pyqtSlot()
+    def on_push_button_move_backward_clicked(self):
+        try:
+            factor = 1
+            if self.combobox_scale.currentText() == 'cm':
+                factor = 10000
+            elif self.combobox_scale.currentText() == 'mm':
+                factor = 1000
+            elif self.combobox_scale.currentText() == 'µm':
+                factor = 1
+            move = float(self.line_edit_travel_distance.text()) * factor
+            self.motor.move_Z(-move, self.motor_speed_y, False)
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     MainWindow = Master()
