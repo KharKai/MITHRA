@@ -87,7 +87,7 @@ class DataSaver(DataAcquisition):
             self.raw()
 
     def hdf5(self, data_xrf=None, data_ris_lis=None, data_swir=None, comments=''):
-        f = h5.File(self.path, 'w')
+        f = h5.File(self.path + '\\data.h5', 'w')
         if data_xrf is not None:
             m_xrf = self.metadata_xrf(self.V, self.mA, comments)
             map_xrf = f.create_group('map xrf')
@@ -118,8 +118,7 @@ class DataSaver(DataAcquisition):
         pass
 
     def config_saver(self, cfg):
-        json.dump(cfg, open(self.path + '\\' + datetime.today().strftime('%Y-%m-%d') + '.cfg', 'w'), indent=4)
-
+        json.dump(cfg, open(self.path + '\\' + datetime.today().strftime('%Y-%m-%d') + 'MITHRA.cfg', 'w'), indent=4)
 
     def backup_line_saver(self, data, line_number):
         map = edf.EdfFile('G:\\DATA\\PyCharm Projects\\MITHRA\\temp\\BackupFiles\\backup_inprogress_'
