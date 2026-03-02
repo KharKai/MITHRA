@@ -22,6 +22,9 @@ import usb.util
 import struct
 import sys
 
+import time
+import matplotlib.pyplot as plt
+import numpy as np
 
 def chksum(data):
     checksum = 0
@@ -451,3 +454,11 @@ def saveSpectrum(filename, spectrum):
 if __name__ == "__main__":
     dev = Device()
     dev.connect_xrf_spectrometer()
+    dev.enable_MCA_MCS()
+    time.sleep(1)
+    spec = np.array(dev.spectrum(True, True)[0], dtype=np.uint32)
+    print(type(spec))
+    img = plt.figure()
+    ax = img.add_subplot(111)
+    ax.plot(spec)
+    plt.show()

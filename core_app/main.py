@@ -47,8 +47,8 @@ class Master(GUIManagement):
         self.z_lock_status = (False, None) # package of z_lock_status and z_lock_distance
         self.q_z_lock_status = Queue()
 
-        self.cfg = DataLoader().load_cfg('G:\DATA\PyCharm Projects\MITHRA\core_app\MITHRA.cfg')
-        # self.cfg = DataLoader().load_cfg('C:\Data\MITHRA\core_app\MITHRA.cfg')
+        # self.cfg = DataLoader().load_cfg('G:\DATA\PyCharm Projects\MITHRA\core_app\MITHRA.cfg')
+        self.cfg = DataLoader().load_cfg('C:\Data\MITHRA\core_app\MITHRA.cfg')
 
         self.analyse_list = []
         self.run_counter = 0
@@ -136,7 +136,7 @@ class Master(GUIManagement):
                             args=(self.q_data_acquisition_status,))
                             # args=(*self.global_data_acquisition_parameter.arg_data_acquisition,)), self.optical_spectrometer_1, self.motor
         p_mapping.start()
-        time.sleep(0.1)
+        time.sleep(0.5)
         while self.data_acquisition_status[0]:
             self.data_acquisition_status = self.q_data_acquisition_status.get()
             if self.data_acquisition_status[0]:
@@ -152,7 +152,7 @@ class Master(GUIManagement):
                     line_finished.emit(self.data_acquisition_status[1], self.global_data_acquisition_parameter.line_number())
                     self.saver.backup_line_saver(self.global_data_acquisition_parameter.datacube[self.data_acquisition_status[1], :, :],
                                                  self.data_acquisition_status[1])
-
+            time.sleep(0.01)
         shm.close()
         shm.unlink()
         p_mapping.join()
