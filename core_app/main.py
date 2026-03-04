@@ -132,6 +132,9 @@ class Master(GUIManagement):
         p_laser.terminate()
 
     def data_consumer(self, data_point, line_finished, acquisition_completed):
+        pixel = self.global_data_acquisition_parameter.pixel_number()
+        line = self.global_data_acquisition_parameter.line_number()
+
         p_mapping = Process(target=self.global_data_acquisition_parameter.analyse_type,
                             args=(self.q_data_acquisition_status,))
                             # args=(*self.global_data_acquisition_parameter.arg_data_acquisition,)), self.optical_spectrometer_1, self.motor
@@ -147,12 +150,13 @@ class Master(GUIManagement):
 
 
                 data_point.emit(self.global_data_acquisition_parameter.datacube)
-                if self.data_acquisition_status[2] == (self.global_data_acquisition_parameter.pixel_number() - 1) :
-                    # print('progress line')
-                    line_finished.emit(self.data_acquisition_status[1], self.global_data_acquisition_parameter.line_number())
+                print(self.data_acquisition_status)
+                if self.data_acquisition_status[2] == (pixel - 1):
+                    print('progress line')
+                    line_finished.emit(self.data_acquisition_status[1], line)
                     self.saver.backup_line_saver(self.global_data_acquisition_parameter.datacube[self.data_acquisition_status[1], :, :],
                                                  self.data_acquisition_status[1])
-            time.sleep(0.01)
+            time.sleep(0.001)
         shm.close()
         shm.unlink()
         p_mapping.join()

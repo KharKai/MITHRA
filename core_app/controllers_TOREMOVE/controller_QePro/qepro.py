@@ -365,7 +365,8 @@ class Device:
 if __name__ == '__main__':
     dev = Device()
     dev.connect_optical_spectrometer()
-
+    dev.abort_acq()
+    dev.start_acq()
     # dev.set_integration_time(1000)
     # print('integration time')
     # s = dev.get_spectrum()
@@ -380,7 +381,7 @@ if __name__ == '__main__':
 
     spectrum = test(dev)
     print(spectrum)
-
+    dev.abort_acq()
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.plot(spectrum)

@@ -63,7 +63,8 @@ class GUIManagement(QMainWindow, Ui_MainWindow):
 
     def update_progressbar(self, value, line_number):
         self.line_edit_progression.setText(str(value + 1) + '/' + str(line_number))
-        progress = int((value + 1)  / line_number * 100)
+        progress = int(value + 1)
+        self.acquisition_progressbar.setMaximum(int(line_number))
         self.acquisition_progressbar.setValue(progress)
 
     def update_image_view(self, data):
