@@ -180,12 +180,26 @@ class DataAcquisition(Data):
             x_ray_detector.spectrum(True, True)
 
             while j < pixel:
-
-                # optical_spectrum_1 = optical_spectrometer_1.get_spectrum()[0]
-                # optical_spectrum_2 = optical_spectrometer_1.get_spectrum()[0]
-                # optical_spectrum_3 = optical_spectrometer_1.get_spectrum()[0]
-                # optical_spectrum_4 = optical_spectrometer_1.get_spectrum()[0]
-                # xrf_spectrum = x_ray_detector.spectrum(True, True)[0]# Careful that XRF array is uint32
+                # if i % 2 == 0:
+                #     map_xrf_ris_lis_buffer[i, j, 511:1555] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, j, 1555:2599] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, j, 2599:3643] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, j, 3643:] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, j, :511] = np.random.randint(0, 1000, 511, dtype=np.uint32)
+                # if i % 2 == 1:
+                #     map_xrf_ris_lis_buffer[i, -j-1, 511:1555] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, -j-1, 1555:2599] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, -j-1, 2599:3643] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, -j-1, 3643:] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, -j-1, :511] = np.random.randint(0, 1000, 511, dtype=np.uint32)
                 if i % 2 == 0:
                     map_xrf_ris_lis_buffer[i, j, 511:1555] = optical_spectrometer_1.get_spectrum()[0]
                     map_xrf_ris_lis_buffer[i, j, 1555:2599] = optical_spectrometer_1.get_spectrum()[0]

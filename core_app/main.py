@@ -26,7 +26,7 @@ from MITHRA_guis.interface_managment import GUIManagement
 from MITHRA_utils.acquisition_parameters import AcquisitionParameters
 from MITHRA_utils.data_acquisition import Data, DataAcquisition
 from MITHRA_utils.threads import *
-
+from MITHRA_utils.data_handling import DataHandling
 
 class Master(GUIManagement):
     def __init__(self, *args, **kwargs):
@@ -52,6 +52,8 @@ class Master(GUIManagement):
 
         self.analyse_list = []
         self.run_counter = 0
+
+        self.mithra_args = tuple
 
         self.project_name = self.cfg['project info']['name']
         self.file_name = self.cfg['analyse list'][self.run_counter]['analyse name']
@@ -83,11 +85,18 @@ class Master(GUIManagement):
         self.operator = self.line_edit_operator.text()
         self.localisation = self.line_edit_localisation.text()
 
+        self.mithra_args = (self.x,
+                            self.y,
+                            self.pixel_size,
+                            self.acquisition_time,
+                            self.project_name,
+                            self.file_name,
+                            self.operator,
+                            self.localisation)
 
+        self.global_data_acquisition_parameter = DataAcquisition(*self.mithra_args)
 
-        self.global_data_acquisition_parameter = DataAcquisition(self.x, self.y, self.pixel_size,
-                                                                 self.acquisition_time, self.project_name,
-                                                                 self.file_name, self.operator, self.localisation)
+        self.saver = DataSaver(*self.mithra_args)
 
         self.global_data_acquisition_parameter.data_acquisition_xrf = self.checkbox_xrf.isChecked()
         self.global_data_acquisition_parameter.data_acquisition_ris_lis = self.checkbox_ris_lis.isChecked()
@@ -95,10 +104,11 @@ class Master(GUIManagement):
 
         self.global_data_acquisition_parameter.data_acquisition_type_and_mode(self.q_data_acquisition_status)
 
-        self.update_gui_params(self.global_data_acquisition_parameter)
+        self.saver.hdf5 = self.checkbox_hdf5.isChecked()
+        self.saver.edf = self.checkbox_edf.isChecked()
+        self.saver.raw = self.checkbox_raw.isChecked()
 
-        self.saver = DataSaver(self.x, self.y, self.pixel_size, self.acquisition_time, self.project_name,
-                               self.file_name, self.operator, self.localisation)
+        self.update_gui_params(self.global_data_acquisition_parameter)
 
 
     def frame_consumer(self, frame):
@@ -166,7 +176,27 @@ class Master(GUIManagement):
         acquisition_completed.emit()
 
     def acquisition_completed(self):
+        comments = self.text_edit_comments.toPlainText()
+        handling = DataHandling(self.global_data_acquisition_parameter.datacube, *self.mithra_args)
+        handling.data_acquisition_xrf = self.checkbox_xrf.isChecked()
+        handling.data_acquisition_ris_lis = self.checkbox_ris_lis.isChecked()
+        handling.data_acquisition_swir = self.checkbox_swir.isChecked()
+        handling.data_classifier()
+        self.saver.save_as(self.saver.hdf5,
+                           self.saver.edf,
+                           self.saver.raw,
+                           handling.datacube_xrf,
+                           handling.datacube_ris,
+                           handling.datacube_lis1,
+                           handling.datacube_lis2,
+                           handling.datacube_lis3,
+                           handling.datacube_swir,
+                           comments)
+
         QMessageBox.information(self, "Information", "Data Acquisition Complete", QMessageBox.Ok)
+
+
+
         self.push_button_start.setEnabled(True)
         self.push_button_stop.setEnabled(False)
         self.run_counter +=1
