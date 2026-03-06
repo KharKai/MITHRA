@@ -130,10 +130,8 @@ class Master(GUIManagement):
         frame.emit(QImage('fonts\\nosignal.jpg'))
 
     def distance_consumer(self, distance):
-        p_laser = Process(target=self.telemetric_laser_process.get_distance, args=(self.telemetric_laser,
-                                                                                   self.q_laser,
-                                                                                   self.q_z_lock_status,
-                                                                                   self.motor))
+        p_laser = Process(target=self.telemetric_laser_process.get_distance, args=(self.q_laser,
+                                                                                   self.q_z_lock_status,))
         p_laser.start()
         while self.laser_on:
             data = self.q_laser.get()

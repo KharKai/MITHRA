@@ -3,6 +3,9 @@ import cv2
 import math
 import time
 
+from core_app.controllers_TOREMOVE.controller_PanasonicHGC1100 import panasonic_hgc1100
+from core_app.controllers_TOREMOVE.controller_Owis import owis
+
 from multiprocessing.shared_memory import SharedMemory
 
 class WebcamProcess:
@@ -39,20 +42,26 @@ class TelemetricLaserProcess:
     def __init__(self):
         self.corr_angle = math.sin(45 * (math.pi / 180))
 
-    def get_distance(self, telemetric_laser, q_laser, q_z_lock_status, motor):
+    def get_distance(self, q_laser, q_z_lock_status): #telemetric_laser, , motor
+        telemetric_laser = panasonic_hgc1100.Device()
+        telemetric_laser.connect()
+
+        motor = owis.Device()
+        motor.connect_motor()
+
         try:
             while True:
-                # print('getting distance...')
-                time.sleep(0.1)
-                # val = telemetric_laser.read_distance()
-                val = np.random.randint(0, 10, 1, dtype=np.uint16)
+                print('getting distance...')
+                # time.sleep(0.01)
+                val = telemetric_laser.read_distance()
+                # val = np.random.randint(0, 10, 1, dtype=np.uint16)
                 q_laser.put(val)
                 z_lock_status = q_z_lock_status.get()
                 print(z_lock_status)
                 if z_lock_status[0]:
-                    pass
-                    # print('correcting')
-                    # self.correct_distance(val, z_lock_status[1], motor)
+                    # pass
+                    print('correcting')
+                    self.correct_distance(val, z_lock_status[1], motor)
         except KeyboardInterrupt:
             pass
 
