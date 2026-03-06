@@ -3,6 +3,7 @@ import time
 from fileinput import filename
 
 import numpy as np
+import math
 import cv2
 
 from multiprocessing import Process, Queue
@@ -65,6 +66,9 @@ class Master(GUIManagement):
         self.pixel_size = self.cfg['analyse list'][self.run_counter]['mapping parameters']['pixel_size']
         self.acquisition_time = self.cfg['analyse list'][self.run_counter]['mapping parameters']['acquisition_time']
 
+        self.motor_speed = float
+        self.corr_angle = math.sin(45 * (math.pi / 180))
+
         self.global_data_acquisition_parameter= DataAcquisition(self.x, self.y, self.pixel_size,
                                                                 self.acquisition_time, self.project_name,
                                                                 self.file_name, self.operator, self.localisation)
@@ -79,6 +83,9 @@ class Master(GUIManagement):
         self.y = int(self.line_edit_y.text())
         self.pixel_size = int(self.line_edit_pixel_size.text())
         self.acquisition_time = int(self.line_edit_acquisition_time.text())
+
+        self.motor_speed = float(self.line_edit_motor_speed.text())
+        print(self.motor_speed)
 
         self.project_name = self.line_edit_project_name.text()
         self.file_name = self.line_edit_file_name.text()
@@ -136,8 +143,22 @@ class Master(GUIManagement):
         while self.laser_on:
             data = self.q_laser.get()
             distance.emit(data)
+
+            if self.z_lock_status[0]:
+                # pass
+                # print('correcting')
+                self.correct_distance(data, self.z_lock_status[1])
+
             self.q_z_lock_status.put(self.z_lock_status)
+
         p_laser.terminate()
+
+    def correct_distance(self, val, z_lock_distance):
+        if val < 130:
+            if z_lock_distance + 0.5 < val:
+                self.motor.move_Z(z=(z_lock_distance - val) * 100 * self.corr_angle, speed=30, idle=False)
+            elif val < z_lock_distance - 0.50:
+                self.motor.move_Z(z=(z_lock_distance - val) * 100 * self.corr_angle, speed=30, idle=False)
 
     def data_consumer(self, data_point, line_finished, acquisition_completed):
         pixel = self.global_data_acquisition_parameter.pixel_number()
@@ -150,6 +171,13 @@ class Master(GUIManagement):
         time.sleep(0.5)
         while self.data_acquisition_status[0]:
             self.data_acquisition_status = self.q_data_acquisition_status.get()
+
+            if self.data_acquisition_status[2] == 0:
+                if self.data_acquisition_status[1] % 2 == 0:
+                    self.motor.move_X((self.x * 10000), self.motor_speed, idle=False)
+                if self.data_acquisition_status[1] % 2 == 1:
+                    self.motor.move_X(-(self.x * 10000), self.motor_speed, idle=False)
+
             if self.data_acquisition_status[0]:
                 shm = SharedMemory(name=self.global_data_acquisition_parameter.name_shm)
                 datacube = np.ndarray(self.global_data_acquisition_parameter.datacube_shape,
@@ -160,10 +188,13 @@ class Master(GUIManagement):
                 data_point.emit(self.global_data_acquisition_parameter.datacube)
                 print(self.data_acquisition_status)
                 if self.data_acquisition_status[2] == (pixel - 1):
+                    self.motor.move_Y(-self.pixel_size, self.motor_speed, idle=False)
+                    #TODO maybe add queue or lock for this operation
                     print('progress line')
                     line_finished.emit(self.data_acquisition_status[1], line)
                     self.saver.backup_line_saver(self.global_data_acquisition_parameter.datacube[self.data_acquisition_status[1], :, :],
                                                  self.data_acquisition_status[1])
+
             time.sleep(0.001)
         shm.close()
         shm.unlink()

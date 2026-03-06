@@ -52,22 +52,22 @@ class TelemetricLaserProcess:
         try:
             while True:
                 print('getting distance...')
-                # time.sleep(0.01)
-                val = telemetric_laser.read_distance()
-                # val = np.random.randint(0, 10, 1, dtype=np.uint16)
+                time.sleep(0.01) #TO COMMENTS IN REAL CASE TESTING
+                # val = telemetric_laser.read_distance()
+                val = np.random.randint(0, 10, 1, dtype=np.uint16) #TO COMMENTS IN REAL CASE TESTING
                 q_laser.put(val)
-                z_lock_status = q_z_lock_status.get()
-                print(z_lock_status)
-                if z_lock_status[0]:
-                    # pass
-                    print('correcting')
-                    self.correct_distance(val, z_lock_status[1], motor)
+                # z_lock_status = q_z_lock_status.get()
+                # print(z_lock_status)
+                # if z_lock_status[0]:
+                #     # pass
+                #     print('correcting')
+                #     self.correct_distance(val, z_lock_status[1], motor)
         except KeyboardInterrupt:
             pass
 
-    def correct_distance(self, val, z_lock_distance, motor):
-        if val < 130:
-                if z_lock_distance + 0.5 < val:
-                    motor.move_Z(z=(z_lock_distance - val) * 100 * self.corr_angle, speed=30, idle=False)
-                elif val < z_lock_distance - 0.50:
-                    motor.move_Z(z=(z_lock_distance - val) * 100 * self.corr_angle, speed=30, idle=False)
+    # def correct_distance(self, val, z_lock_distance, motor):
+    #     if val < 130:
+    #             if z_lock_distance + 0.5 < val:
+    #                 motor.move_Z(z=(z_lock_distance - val) * 100 * self.corr_angle, speed=30, idle=False)
+    #             elif val < z_lock_distance - 0.50:
+    #                 motor.move_Z(z=(z_lock_distance - val) * 100 * self.corr_angle, speed=30, idle=False)

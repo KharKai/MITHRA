@@ -149,8 +149,8 @@ class DataAcquisition(Data):
         optical_spectrometer_1 = qepro.Device()
         optical_spectrometer_1.connect_optical_spectrometer()
 
-        motor = owis.Device()
-        motor.connect_motor()
+        # motor = owis.Device()
+        # motor.connect_motor()
 
         try:
             sh_mem_xrf_ris_lis = SharedMemory(create=True, size=(1044 * 16 + 2044) * pixel * line, name='shared_memory_xrf_ris_lis')
@@ -171,10 +171,10 @@ class DataAcquisition(Data):
             j = 0
             optical_spectrometer_1.clear_buffer()
 
-            if i % 2 == 0:
-                motor.move_X((self.x * 10000), speed, idle=False)
-            if i % 2 == 1:
-                motor.move_X(-(self.x * 10000), speed, idle=False)
+            # if i % 2 == 0:
+            #     motor.move_X((self.x * 10000), speed, idle=False)
+            # if i % 2 == 1:
+            #     motor.move_X(-(self.x * 10000), speed, idle=False)
 
             optical_spectrometer_1.start_acq()
             x_ray_detector.spectrum(True, True)
@@ -221,7 +221,8 @@ class DataAcquisition(Data):
             optical_spectrometer_1.abort_acq()
 
             time.sleep(1)
-            motor.move_Y(-self.pixel_size, speed, idle=True)
+            #TODO ADD sync for y move
+            #motor.move_Y(-self.pixel_size, speed, idle=True)
 
             optical_spectrometer_1.set_lamp_enable(1)
             optical_spectrometer_1.start_acq()
