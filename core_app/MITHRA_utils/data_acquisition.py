@@ -59,7 +59,7 @@ class DataAcquisition(Data):
                 shape = list(self.datacube_shape)
                 shape[2] = 512 + 1044 * 4 + 256
                 self.datacube_shape = tuple(shape)
-                print('xrf ris lis swir selected')
+                # print('xrf ris lis swir selected')
 
             elif self.data_acquisition_xrf and self.data_acquisition_ris_lis:
                 self.analyse_type = self.mapping_xrf_ris_lis
@@ -68,7 +68,7 @@ class DataAcquisition(Data):
                 shape = list(self.datacube_shape)
                 shape[2] = 511 + 1044 * 4
                 self.datacube_shape = tuple(shape)
-                print('xrf ris lis selected')
+                # print('xrf ris lis selected')
 
             elif self.data_acquisition_xrf and self.data_acquisition_swir:
                 self.analyse_type = self.mapping_xrf_swir
@@ -77,7 +77,7 @@ class DataAcquisition(Data):
                 shape = list(self.datacube_shape)
                 shape[2] = 511 + 256
                 self.datacube_shape = tuple(shape)
-                print('xrf swir selected')
+                # print('xrf swir selected')
 
             elif self.data_acquisition_ris_lis and self.data_acquisition_swir:
                 self.analyse_type = self.mapping_ris_lis_swir
@@ -86,7 +86,7 @@ class DataAcquisition(Data):
                 shape = list(self.datacube_shape)
                 shape[2] = 1044 * 4 + 256
                 self.datacube_shape = tuple(shape)
-                print('ris lis swir selected')
+                # print('ris lis swir selected')
 
             elif self.data_acquisition_xrf:
                 self.analyse_type = self.mapping_xrf
@@ -95,7 +95,7 @@ class DataAcquisition(Data):
                 shape = list(self.datacube_shape)
                 shape[2] = 511
                 self.datacube_shape = tuple(shape)
-                print('xrf selected')
+                # print('xrf selected')
 
             elif self.data_acquisition_ris_lis:
                 self.analyse_type = self.mapping_ris_lis
@@ -104,7 +104,7 @@ class DataAcquisition(Data):
                 shape = list(self.datacube_shape)
                 shape[2] = 1044 * 4
                 self.datacube_shape = tuple(shape)
-                print('ris lis selected')
+                # print('ris lis selected')
 
             elif self.data_acquisition_swir:
                 self.analyse_type = self.mapping_swir
@@ -113,7 +113,7 @@ class DataAcquisition(Data):
                 shape = list(self.datacube_shape)
                 shape[2] = 256
                 self.datacube_shape = tuple(shape)
-                print('swir selected')
+                # print('swir selected')
 
         elif self.analyse_mode_point:
             pass
@@ -138,10 +138,9 @@ class DataAcquisition(Data):
     def mapping_xrf_ris_lis_swir(self, q_status, x_ray_detector, optical_spectrometer1, optical_spectrometer_2, motor):
         pass
 
-    def mapping_xrf_ris_lis(self, q_status):
+    def mapping_xrf_ris_lis(self, q_status, q_main):
         line = self.line_number()
         pixel = self.pixel_number()
-        speed = self.motor_speed()
 
         x_ray_detector = mca8000d.Device()
         x_ray_detector.connect_xrf_spectrometer()
@@ -170,16 +169,19 @@ class DataAcquisition(Data):
         while i < line:
             j = 0
             optical_spectrometer_1.clear_buffer()
-
-            # if i % 2 == 0:
-            #     motor.move_X((self.x * 10000), speed, idle=False)
-            # if i % 2 == 1:
+            # q_motor.put((True, False))
+            if i % 2 == 0:
+                q_status.put((True, i, j, True, False, False))
+                 # motor.move_X((self.x * 10000), speed, idle=False)
+            if i % 2 == 1:
+                q_status.put((True, i, j, False, True, False))
             #     motor.move_X(-(self.x * 10000), speed, idle=False)
-
+            q_main.get()
             optical_spectrometer_1.start_acq()
             x_ray_detector.spectrum(True, True)
 
             while j < pixel:
+                # q_motor.put((False, False, False))
                 # if i % 2 == 0:
                 #     map_xrf_ris_lis_buffer[i, j, 511:1555] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
                 #     time.sleep(0.02)
@@ -215,14 +217,14 @@ class DataAcquisition(Data):
                     map_xrf_ris_lis_buffer[i, -j-1, :511] = np.array(x_ray_detector.spectrum(True, True)[0],
                                                                   dtype=np.uint32)
 
-                q_status.put((True, i, j))
+                q_status.put((True, i, j, False, False, False))
                 j += 1
 
             optical_spectrometer_1.abort_acq()
 
-            time.sleep(1)
+            # time.sleep(1)
             #TODO ADD sync for y move
-            #motor.move_Y(-self.pixel_size, speed, idle=True)
+            q_status.put((True, i, j, False, False, True)) #motor.move_Y(-self.pixel_size, speed, idle=True)
 
             optical_spectrometer_1.set_lamp_enable(1)
             optical_spectrometer_1.start_acq()
@@ -231,9 +233,12 @@ class DataAcquisition(Data):
             optical_spectrometer_1.set_lamp_enable(0)
 
             i += 1
+            time.sleep(0.5)
+            q_main.get()
 
 
-        q_status.put((False, i, j))
+
+        q_status.put((False, i, j, False, False, False))
         sh_mem_xrf_ris_lis.close()
         time.sleep(1)
         sh_mem_xrf_ris_lis.unlink()

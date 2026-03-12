@@ -40,8 +40,10 @@ class Master(GUIManagement):
         self.optical_spectrometer_1 = qepro.Device()
         self.optical_spectrometer_2 = None
 
-        self.data_acquisition_status = (False, None, None)
+        self.data_acquisition_status = (False, None, None, False, False)
         self.q_data_acquisition_status = Queue()
+
+        self.q_main = Queue()
 
         self.telemetric_laser = panasonic_hgc1100.Device()
         self.q_laser = Queue()
@@ -85,7 +87,7 @@ class Master(GUIManagement):
         self.acquisition_time = int(self.line_edit_acquisition_time.text())
 
         self.motor_speed = float(self.line_edit_motor_speed.text())
-        print(self.motor_speed)
+        # print(self.motor_speed)
 
         self.project_name = self.line_edit_project_name.text()
         self.file_name = self.line_edit_file_name.text()
@@ -165,18 +167,33 @@ class Master(GUIManagement):
         line = self.global_data_acquisition_parameter.line_number()
 
         p_mapping = Process(target=self.global_data_acquisition_parameter.analyse_type,
-                            args=(self.q_data_acquisition_status,))
+                            args=(self.q_data_acquisition_status, self.q_main))
                             # args=(*self.global_data_acquisition_parameter.arg_data_acquisition,)), self.optical_spectrometer_1, self.motor
         p_mapping.start()
-        time.sleep(0.5)
+        # time.sleep(0.5)
         while self.data_acquisition_status[0]:
             self.data_acquisition_status = self.q_data_acquisition_status.get()
+            # print(self.data_acquisition_status)
 
-            if self.data_acquisition_status[2] == 0:
-                if self.data_acquisition_status[1] % 2 == 0:
-                    self.motor.move_X((self.x * 10000), self.motor_speed, idle=False)
-                if self.data_acquisition_status[1] % 2 == 1:
-                    self.motor.move_X(-(self.x * 10000), self.motor_speed, idle=False)
+            # self.motor_status = self.q_motor_status.get(False)
+            # try:
+            #     self.motor_status = self.q_motor_status.get(False)
+            # except Exception as e:
+            #     self.motor_status = (False, False, False)
+                # print(e)
+            # print(self.motor_status)
+            if self.data_acquisition_status[3]:
+                # print('supposed to move X even')
+                self.motor.move_X((self.x * 10000), self.motor_speed, idle=False)
+                self.q_main.put(True)
+            if self.data_acquisition_status[4]:
+                # print('supposed to move X odd')
+                self.motor.move_X(-(self.x * 10000), self.motor_speed, idle=False)
+                self.q_main.put(True)
+            if self.data_acquisition_status[5]:
+                # print('supposed to move Y')
+                self.motor.move_Y(-self.pixel_size, self.motor_speed, idle=True)
+
 
             if self.data_acquisition_status[0]:
                 shm = SharedMemory(name=self.global_data_acquisition_parameter.name_shm)
@@ -186,16 +203,17 @@ class Master(GUIManagement):
 
 
                 data_point.emit(self.global_data_acquisition_parameter.datacube)
-                print(self.data_acquisition_status)
+                # print(self.data_acquisition_status)
                 if self.data_acquisition_status[2] == (pixel - 1):
-                    self.motor.move_Y(-self.pixel_size, self.motor_speed, idle=False)
+                    # self.motor.move_Y(-self.pixel_size, self.motor_speed, idle=False)
                     #TODO maybe add queue or lock for this operation
                     print('progress line')
                     line_finished.emit(self.data_acquisition_status[1], line)
                     self.saver.backup_line_saver(self.global_data_acquisition_parameter.datacube[self.data_acquisition_status[1], :, :],
                                                  self.data_acquisition_status[1])
+                    self.q_main.put(True)
 
-            time.sleep(0.001)
+            # time.sleep(0.001)
         shm.close()
         shm.unlink()
         p_mapping.join()
@@ -269,9 +287,9 @@ class Master(GUIManagement):
         thread_acquisition.signals.progress.connect(self.update_image_view)
         thread_acquisition.signals.line_finished.connect(self.update_progressbar)
         thread_acquisition.signals.completed.connect(self.acquisition_completed)
-
+        self.data_acquisition_status = (True, 0, 0, False, False, False)
         self.threadpool.start(thread_acquisition)
-        self.data_acquisition_status = (True, 0, 0)
+
 
     @pyqtSlot()
     def on_push_button_stop_clicked(self):
@@ -359,6 +377,7 @@ class Master(GUIManagement):
     def on_push_button_connect_motor_clicked(self):
         try:
             self.motor.connect_motor()
+            #TODO add not connected managment
             self.slider_motorspeed_x.setValue(7)
             self.slider_motorspeed_y.setValue(7)
             self.slider_motorspeed_z.setValue(7)
@@ -454,6 +473,7 @@ class Master(GUIManagement):
                 factor = 1
             move = float(self.line_edit_travel_distance.text()) * factor
             self.motor.move_X(move, self.motor_speed_y, False)
+            print('order fully sent')
         except Exception as e:
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
 

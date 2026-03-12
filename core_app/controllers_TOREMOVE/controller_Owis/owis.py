@@ -9,6 +9,7 @@ class Device:
     def __init__(self):
         # self.lib_ps35 = cdll.LoadLibrary("G:\\DATA\\PyCharm Projects\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_Owis\\dll\\ps35.dll")
         self.lib_ps35 = cdll.LoadLibrary('C:\\DATA\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_Owis\\dll\\ps35.dll')
+        # print(self.lib_ps35)
         self.connection = None
         self.ps35 = None
         self.portCOM = None
@@ -35,7 +36,7 @@ class Device:
         ports = serial.tools.list_ports.comports()
         for port, desc, hwid in sorted(ports):
             # print('owis')
-            # print("{}: {} [{}]".format(port, desc, hwid))
+            print("{}: {} [{}]".format(port, desc, hwid))
             if 'VID:PID=0403:6001' in hwid:
                 self.portCOM = int(port[-1])
                 # print('connected')
@@ -72,7 +73,7 @@ class Device:
 
     def move_X(self, x, speed, idle):
         self.lib_ps35.PS35_SetPosFEx(1, 1, c_double(speed * 1000))
-        self.lib_ps35.PS35_MoveEx(1, 1, c_double(x *10), 0) # length in micrometer
+        self.lib_ps35.PS35_MoveEx(1, 1, c_double(x * 10), 0) # length in micrometer
         if idle is True:
             self.idle()
 
@@ -96,9 +97,9 @@ if __name__ == '__main__':
     motor.connect_motor()
 
     motor.move_X(2000, 10, True)
-    # motor.move_X(2000, 10, True) # shitty owis behavior
+    motor.move_Y(2000, 10, True)
     # motor.move_X(1000, 10, True)
-    motor.move_X(-500, 10, True)
+    # motor.move_X(-500, 10, True)
     # motor.move_X(500, 10, False)
     # motor.stop_motor(1)
     # motor.move_X(-1000, 10, True)
