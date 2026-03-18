@@ -7,6 +7,7 @@ import math
 import cv2
 
 from multiprocessing import Process, Queue
+from queue import Empty
 from multiprocessing.shared_memory import SharedMemory
 
 from PyQt5.QtCore import *
@@ -40,10 +41,11 @@ class Master(GUIManagement):
         self.optical_spectrometer_1 = qepro.Device()
         self.optical_spectrometer_2 = None
 
-        self.data_acquisition_status = (False, None, None, False, False)
+        self.data_acquisition_status = (False, None) # acquisition running/line index
         self.q_data_acquisition_status = Queue()
 
         self.q_main = Queue()
+        self.q_motor = Queue()
 
         self.telemetric_laser = panasonic_hgc1100.Device()
         self.q_laser = Queue()
@@ -162,58 +164,107 @@ class Master(GUIManagement):
             elif val < z_lock_distance - 0.50:
                 self.motor.move_Z(z=(z_lock_distance - val) * 100 * self.corr_angle, speed=30, idle=False)
 
+    # def data_consumer(self, data_point, line_finished, acquisition_completed):
+    #     pixel = self.global_data_acquisition_parameter.pixel_number()
+    #     line = self.global_data_acquisition_parameter.line_number()
+    #
+    #     p_mapping = Process(target=self.global_data_acquisition_parameter.analyse_type,
+    #                         args=(self.q_data_acquisition_status, self.q_main))
+    #                         # args=(*self.global_data_acquisition_parameter.arg_data_acquisition,)), self.optical_spectrometer_1, self.motor
+    #     p_mapping.start()
+    #     # time.sleep(0.5)
+    #     while self.data_acquisition_status[0]:
+    #         self.data_acquisition_status = self.q_data_acquisition_status.get()
+    #         # print(self.data_acquisition_status)
+    #
+    #         # self.motor_status = self.q_motor_status.get(False)
+    #         # try:
+    #         #     self.motor_status = self.q_motor_status.get(False)
+    #         # except Exception as e:
+    #         #     self.motor_status = (False, False, False)
+    #             # print(e)
+    #         # print(self.motor_status)
+    #         if self.data_acquisition_status[3]:
+    #             # print('supposed to move X even')
+    #             self.motor.move_X((self.x * 10000), self.motor_speed, idle=False)
+    #             self.q_main.put(True)
+    #         if self.data_acquisition_status[4]:
+    #             # print('supposed to move X odd')
+    #             self.motor.move_X(-(self.x * 10000), self.motor_speed, idle=False)
+    #             self.q_main.put(True)
+    #         if self.data_acquisition_status[5]:
+    #             # print('supposed to move Y')
+    #             self.motor.move_Y(-self.pixel_size, self.motor_speed, idle=True)
+    #
+    #
+    #         if self.data_acquisition_status[0]:
+    #             shm = SharedMemory(name=self.global_data_acquisition_parameter.name_shm)
+    #             datacube = np.ndarray(self.global_data_acquisition_parameter.datacube_shape,
+    #                                   dtype=np.uint32, buffer=shm.buf)
+    #             self.global_data_acquisition_parameter.datacube = np.copy(datacube)
+    #
+    #
+    #             data_point.emit(self.global_data_acquisition_parameter.datacube)
+    #             # print(self.data_acquisition_status)
+    #             if self.data_acquisition_status[2] == (pixel - 1):
+    #                 # self.motor.move_Y(-self.pixel_size, self.motor_speed, idle=False)
+    #                 #TODO maybe add queue or lock for this operation
+    #                 print('progress line')
+    #                 line_finished.emit(self.data_acquisition_status[1], line)
+    #                 self.saver.backup_line_saver(self.global_data_acquisition_parameter.datacube[self.data_acquisition_status[1], :, :],
+    #                                              self.data_acquisition_status[1])
+    #                 self.q_main.put(True)
+    #
+    #         # time.sleep(0.001)
+    #     shm.close()
+    #     shm.unlink()
+    #     p_mapping.join()
+    #     p_mapping.terminate()
+    #     # line_finished.emit(self.data_acquisition_status[1], self.global_data_acquisition_parameter.line_number())
+    #     time.sleep(0.1)
+    #     acquisition_completed.emit()
+
     def data_consumer(self, data_point, line_finished, acquisition_completed):
         pixel = self.global_data_acquisition_parameter.pixel_number()
         line = self.global_data_acquisition_parameter.line_number()
 
         p_mapping = Process(target=self.global_data_acquisition_parameter.analyse_type,
-                            args=(self.q_data_acquisition_status, self.q_main))
-                            # args=(*self.global_data_acquisition_parameter.arg_data_acquisition,)), self.optical_spectrometer_1, self.motor
+                            args=(self.q_data_acquisition_status, self.q_main, self.q_motor))
         p_mapping.start()
-        # time.sleep(0.5)
+        time.sleep(0.5)
         while self.data_acquisition_status[0]:
-            self.data_acquisition_status = self.q_data_acquisition_status.get()
-            # print(self.data_acquisition_status)
+            try:
+                q = self.q_motor.get(block=False)
+                if q[0]:
+                    self.motor.move_X((self.x * 10000), self.motor_speed, idle=False)
+                    self.q_main.put(True)
+                if q[1]:
+                    self.motor.move_X(-(self.x * 10000), self.motor_speed, idle=False)
+                    self.q_main.put(True)
+                if q[2]:
+                    self.motor.move_Y(-self.pixel_size, self.motor_speed, idle=True)
+                    self.q_main.put(True)
+            except Empty:
+                pass
 
-            # self.motor_status = self.q_motor_status.get(False)
-            # try:
-            #     self.motor_status = self.q_motor_status.get(False)
-            # except Exception as e:
-            #     self.motor_status = (False, False, False)
-                # print(e)
-            # print(self.motor_status)
-            if self.data_acquisition_status[3]:
-                # print('supposed to move X even')
-                self.motor.move_X((self.x * 10000), self.motor_speed, idle=False)
-                self.q_main.put(True)
-            if self.data_acquisition_status[4]:
-                # print('supposed to move X odd')
-                self.motor.move_X(-(self.x * 10000), self.motor_speed, idle=False)
-                self.q_main.put(True)
-            if self.data_acquisition_status[5]:
-                # print('supposed to move Y')
-                self.motor.move_Y(-self.pixel_size, self.motor_speed, idle=True)
+            shm = SharedMemory(name=self.global_data_acquisition_parameter.name_shm)
+            datacube = np.ndarray(self.global_data_acquisition_parameter.datacube_shape,
+                                  dtype=np.uint32, buffer=shm.buf)
+            self.global_data_acquisition_parameter.datacube = np.copy(datacube)
 
+            data_point.emit(self.global_data_acquisition_parameter.datacube)
+            time.sleep(0.01)
 
-            if self.data_acquisition_status[0]:
-                shm = SharedMemory(name=self.global_data_acquisition_parameter.name_shm)
-                datacube = np.ndarray(self.global_data_acquisition_parameter.datacube_shape,
-                                      dtype=np.uint32, buffer=shm.buf)
-                self.global_data_acquisition_parameter.datacube = np.copy(datacube)
-
-
-                data_point.emit(self.global_data_acquisition_parameter.datacube)
-                # print(self.data_acquisition_status)
-                if self.data_acquisition_status[2] == (pixel - 1):
-                    # self.motor.move_Y(-self.pixel_size, self.motor_speed, idle=False)
-                    #TODO maybe add queue or lock for this operation
-                    print('progress line')
+            try:
+                self.data_acquisition_status = self.q_data_acquisition_status.get(block=False)
+                if self.data_acquisition_status[0]:
                     line_finished.emit(self.data_acquisition_status[1], line)
                     self.saver.backup_line_saver(self.global_data_acquisition_parameter.datacube[self.data_acquisition_status[1], :, :],
                                                  self.data_acquisition_status[1])
-                    self.q_main.put(True)
+                self.q_main.put(True)
+            except Empty:
+                pass
 
-            # time.sleep(0.001)
         shm.close()
         shm.unlink()
         p_mapping.join()
@@ -221,6 +272,28 @@ class Master(GUIManagement):
         # line_finished.emit(self.data_acquisition_status[1], self.global_data_acquisition_parameter.line_number())
         time.sleep(0.1)
         acquisition_completed.emit()
+
+
+
+    def dummy_consumer(self):
+        queue1 = Queue()
+        queue2 = Queue()
+        p_dummy= Process(target=self.global_data_acquisition_parameter.dummy_test, args=(queue1, queue2))
+        p_dummy.start()
+        while True:
+            try:
+                q = queue1.get(block=False)
+            except Empty:
+                q = (False, 0)
+                print('empty')
+            print(q)
+            if q[0]:
+                print(q[1])
+            else:
+                print('wait')
+            time.sleep(2)
+            queue2.put(True)
+
 
     def acquisition_completed(self):
         comments = self.text_edit_comments.toPlainText()
@@ -248,6 +321,9 @@ class Master(GUIManagement):
         self.push_button_stop.setEnabled(False)
         self.run_counter +=1
 
+    def on_push_button_white_clicked(self):
+        self.dummy_consummer()
+
 
     """ GUI interactions"""
     def closeEvent(self, event):
@@ -270,6 +346,7 @@ class Master(GUIManagement):
         self.push_button_start.setEnabled(False)
         self.push_button_stop.setEnabled(True)
 
+        self.global_data_acquisition_parameter.datacube = None
         self.saver.backup_directory_cleaner()
 
         self.update_params()
@@ -287,7 +364,7 @@ class Master(GUIManagement):
         thread_acquisition.signals.progress.connect(self.update_image_view)
         thread_acquisition.signals.line_finished.connect(self.update_progressbar)
         thread_acquisition.signals.completed.connect(self.acquisition_completed)
-        self.data_acquisition_status = (True, 0, 0, False, False, False)
+        self.data_acquisition_status = (True, 0)
         self.threadpool.start(thread_acquisition)
 
 

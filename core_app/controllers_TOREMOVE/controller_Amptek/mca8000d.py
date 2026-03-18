@@ -437,6 +437,7 @@ class Device:
         spectrum = []
         sta = None
         for indx in range(0, maxChan * 3, 3):
+
             spectrum.append(threebytes2long(res[2][indx:(indx + 3)]))
         if bStatus:
             sta = status(res[2][-64:])
