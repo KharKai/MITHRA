@@ -191,7 +191,11 @@ class DataAcquisition(Data):
             optical_spectrometer_1.set_buffer_size(pixel * 4)
             optical_spectrometer_1.start_acq()
 
+            s, n, tick, integ, t = optical_spectrometer_1.get_spectrum()  # [0], dev.get_spectrum()[1]
+            print('i=' + str(i))
+            print(n)
 
+            start = time.perf_counter()
             while j < pixel:
                 # q_motor.put((False, False, False))
                 # if i % 2 == 0:
@@ -214,23 +218,30 @@ class DataAcquisition(Data):
                 #     map_xrf_ris_lis_buffer[i, -j-1, 3643:] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
                 #     time.sleep(0.02)
                 #     map_xrf_ris_lis_buffer[i, -j-1, :511] = np.random.randint(0, 1000, 511, dtype=np.uint32)
+
+
+                end = time.perf_counter()
+                clock = end - start
+                while clock < (self.acquisition_time / 1000):
+                    end = time.perf_counter()
+                    clock = end - start
+                start = time.perf_counter()
+
                 if i % 2 == 0:
-                    map_xrf_ris_lis_buffer[i, j, 511:1555] = optical_spectrometer_1.get_spectrum()[0]
-                    map_xrf_ris_lis_buffer[i, j, 1555:2599] = optical_spectrometer_1.get_spectrum()[0]
-                    map_xrf_ris_lis_buffer[i, j, 2599:3643] = optical_spectrometer_1.get_spectrum()[0]
-                    map_xrf_ris_lis_buffer[i, j, 3643:] = optical_spectrometer_1.get_spectrum()[0]
-                    map_xrf_ris_lis_buffer[i, j, :511] = np.array(x_ray_detector.spectrum(True, True)[0],
+                    # map_xrf_ris_lis_buffer[i, j, 511:1555] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, j, 1555:2599] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, j, 2599:3643] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, j, 3643:] = optical_spectrometer_1.get_spectrum()[0]
+                    map_xrf_ris_lis_buffer[i, j, :511] = np.array(x_ray_detector.spectrum(False, True)[0],
                                                                   dtype=np.uint32)
 
                 if i % 2 == 1:
-                    map_xrf_ris_lis_buffer[i, -j - 1, 511:1555] = optical_spectrometer_1.get_spectrum()[0]
-                    map_xrf_ris_lis_buffer[i, -j - 1, 1555:2599] = optical_spectrometer_1.get_spectrum()[0]
-                    map_xrf_ris_lis_buffer[i, -j - 1, 2599:3643] = optical_spectrometer_1.get_spectrum()[0]
-                    map_xrf_ris_lis_buffer[i, -j - 1, 3643:] = optical_spectrometer_1.get_spectrum()[0]
-                    map_xrf_ris_lis_buffer[i, -j - 1, :511] = np.array(x_ray_detector.spectrum(True, True)[0],
+                    # map_xrf_ris_lis_buffer[i, -j - 1, 511:1555] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, -j - 1, 1555:2599] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, -j - 1, 2599:3643] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, -j - 1, 3643:] = optical_spectrometer_1.get_spectrum()[0]
+                    map_xrf_ris_lis_buffer[i, -j - 1, :511] = np.array(x_ray_detector.spectrum(False, True)[0],
                                                                        dtype=np.uint32)
-
-
 
                 # q_status.put((True, i, j, False, False, False))
                 j += 1
@@ -238,8 +249,41 @@ class DataAcquisition(Data):
             optical_spectrometer_1.abort_acq()
             x_ray_detector.disable_MCA_MCS()
             time.sleep(0.5)
-            # time.sleep(1)
-            #TODO ADD sync for y move
+
+            for k in range(pixel):
+                if i % 2 == 0:
+                    for _ in range(4):
+                        spec, n_, tick, integ, t = optical_spectrometer_1.get_spectrum()
+                        # print(str(n_ - n) + ' (' + str(n_) + ')')
+                        if (n_ - n) % 4 == 0:
+                            map_xrf_ris_lis_buffer[i, k, 511:1555] = spec#[0]
+                        if (n_ - n) % 4 == 1:
+                            map_xrf_ris_lis_buffer[i, k, 1555:2599] = spec
+                        if (n_ - n) % 4 == 2:
+                            map_xrf_ris_lis_buffer[i, k, 2599:3643] = spec
+                        if (n_ - n) % 4 == 3:
+                            map_xrf_ris_lis_buffer[i, k, 3643:] = spec
+
+                if i % 2 == 1:
+                    for _ in range(4):
+                        spec, n_, tick, integ, t = optical_spectrometer_1.get_spectrum()
+                        # print(str(n_ - n) + ' (' + str(n_) + ')')
+                        if (n_ - n) % 4 == 0:
+                            map_xrf_ris_lis_buffer[i, -k-1, 511:1555] = spec  # [0]
+                        if (n_ - n) % 4 == 1:
+                            map_xrf_ris_lis_buffer[i, -k-1, 1555:2599] = spec
+                        if (n_ - n) % 4 == 2:
+                            map_xrf_ris_lis_buffer[i, -k-1, 2599:3643] = spec
+                        if (n_ - n) % 4 == 3:
+                            map_xrf_ris_lis_buffer[i, -k-1, 3643:] = spec
+                    # map_xrf_ris_lis_buffer[i, -k-1, 511:1555], n_, tick, integ_, t = optical_spectrometer_1.get_spectrum()
+                    # print(str(n_ - n) + ' (' + str(n_) + ')')
+                    # map_xrf_ris_lis_buffer[i, -k-1, 1555:2599] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, -k-1, 2599:3643] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, -k-1, 3643:] = optical_spectrometer_1.get_spectrum()[0]
+
+
+            time.sleep(0.5)
 
             q_motor.put((False, False, True)) #motor.move_Y(-self.pixel_size, speed, idle=True)
             q_main.get()
@@ -311,7 +355,7 @@ class DataAcquisition(Data):
                     map_xrf_buffer[i, j, :] = np.array(x_ray_detector.spectrum(True, True)[0], dtype=np.uint32) # xrf_spectrum
                 elif i%2 ==1:
                     map_xrf_buffer[i, -j-1, :] = np.array(x_ray_detector.spectrum(True, True)[0], dtype=np.uint32)# xrf_spectrum
-                q_status.put((True, i))
+                # q_status.put((True, i))
                 j += 1
             # i+=1
 

@@ -367,24 +367,19 @@ if __name__ == '__main__':
     dev.connect_optical_spectrometer()
     dev.abort_acq()
     dev.start_acq()
-    # dev.set_integration_time(1000)
-    # print('integration time')
-    # s = dev.get_spectrum()
-    # print('spectrum')
 
-    # i = dev.get_integration_time()
-    # print(i)
+    s, n, tick, i, t  = dev.get_spectrum()# [0], dev.get_spectrum()[1]
+    print(n)
+    s, n, tick, i, t  = dev.get_spectrum()# [0], dev.get_spectrum()[1]
+    print(n)
+    s, n, tick, i, t  = dev.get_spectrum()# [0], dev.get_spectrum()[1]
+    print(n)
 
-    def test(qepro):
-        s = qepro.get_spectrum()[0]
-        return s
-
-    spectrum = test(dev)
-    print(spectrum)
     dev.abort_acq()
+
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.plot(spectrum)
+    ax.plot(s)
     plt.show()
 
 

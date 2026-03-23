@@ -233,15 +233,19 @@ class Master(GUIManagement):
         p_mapping.start()
         time.sleep(0.5)
         while self.data_acquisition_status[0]:
+            time.sleep(0.01)
             try:
                 q = self.q_motor.get(block=False)
                 if q[0]:
+                    print('x even ok')
                     self.motor.move_X((self.x * 10000), self.motor_speed, idle=False)
                     self.q_main.put(True)
                 if q[1]:
+                    print('x odd ok')
                     self.motor.move_X(-(self.x * 10000), self.motor_speed, idle=False)
                     self.q_main.put(True)
                 if q[2]:
+                    print('y ok')
                     self.motor.move_Y(-self.pixel_size, self.motor_speed, idle=True)
                     self.q_main.put(True)
             except Empty:
