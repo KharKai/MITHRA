@@ -333,6 +333,12 @@ class Device:
             raise ValueError('Device not found')
         self.dev.set_configuration()
 
+    def disconnect_xrf_spectrometer(self):
+        try:
+            usb.util.dispose_resources(self.dev)
+        except Exception as e:
+            print(e)
+
     def sendCmd(self, req_pid1, req_pid2, data):
         """sends raw cmd over usb"""
         header = bytearray(4)

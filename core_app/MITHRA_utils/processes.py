@@ -9,8 +9,7 @@ from core_app.controllers_TOREMOVE.controller_Owis import owis
 from multiprocessing.shared_memory import SharedMemory
 
 class WebcamProcess:
-    def __init__(self):#•, source_video
-        # self.source_video = source_video
+    def __init__(self):
         try:
             # create shared memory if available
             self.sh_mem = SharedMemory(create=True, size=921600, name='shared_memory_webcam')
@@ -26,7 +25,7 @@ class WebcamProcess:
     def get_frame(self, source_video):
         cap = cv2.VideoCapture(source_video)
         success, frame = cap.read()
-        time.sleep(0.5)
+        time.sleep(0.1)
         framebuffer = np.ndarray(frame.shape, dtype=np.uint8, buffer=self.sh_mem.buf)
         framebuffer[:] = frame
         try:
@@ -43,7 +42,7 @@ class TelemetricLaserProcess:
     def __init__(self):
         self.corr_angle = math.sin(45 * (math.pi / 180))
 
-    def get_distance(self, q_laser): #telemetric_laser, , motor, q_z_lock_status
+    def get_distance(self, q_laser): #telemetric_laser, , motor
         telemetric_laser = panasonic_hgc1100.Device()
         telemetric_laser.connect()
 

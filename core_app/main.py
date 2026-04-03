@@ -18,7 +18,7 @@ from controllers_TOREMOVE.controller_Owis import owis
 from controllers_TOREMOVE.controller_Amptek import mca8000d
 from controllers_TOREMOVE.controller_QePro import qepro
 from controllers_TOREMOVE.controller_PanasonicHGC1100 import panasonic_hgc1100
-
+from controllers_TOREMOVE.controller_AVANTES import avaspec_nir256
 
 from MITHRA_IO.load import DataLoader
 from MITHRA_IO.save import DataSaver
@@ -39,7 +39,7 @@ class Master(GUIManagement):
         self.motor = owis.Device()
         self.x_ray_detector = mca8000d.Device()
         self.optical_spectrometer_1 = qepro.Device()
-        self.optical_spectrometer_2 = None
+        self.optical_spectrometer_2 = avaspec_nir256.Device()
 
         self.data_acquisition_status = (False, None) # acquisition running/line index
         self.q_data_acquisition_status = Queue()
@@ -52,8 +52,8 @@ class Master(GUIManagement):
         self.z_lock_status = (False, None) # package of z_lock_status and z_lock_distance
         self.q_z_lock_status = Queue()
 
-        # self.cfg = DataLoader().load_cfg('G:\DATA\PyCharm Projects\MITHRA\core_app\MITHRA.cfg')
-        self.cfg = DataLoader().load_cfg('C:\Data\MITHRA\core_app\MITHRA.cfg')
+        self.cfg = DataLoader().load_cfg('G:\DATA\PyCharm Projects\MITHRA\core_app\MITHRA.cfg')
+        # self.cfg = DataLoader().load_cfg('C:\Data\MITHRA\core_app\MITHRA.cfg')
 
         self.analyse_list = []
         self.run_counter = 0
@@ -83,7 +83,6 @@ class Master(GUIManagement):
         self.threadpool = QThreadPool.globalInstance()
 
     def update_params(self):
-        #TODO change and check to float x and y
         self.x = float(self.line_edit_x.text())
         self.y = float(self.line_edit_y.text())
         self.pixel_size = int(self.line_edit_pixel_size.text())
@@ -127,7 +126,7 @@ class Master(GUIManagement):
         source = self.spinbox_source_cam.value()
         p_webcam = Process(target=self.webcam_process.get_frame, args=(source,))
         p_webcam.start()
-        time.sleep(0.5)
+        time.sleep(0.1)
         while self.webcam_on:
             shm = SharedMemory(name='shared_memory_webcam')
             data = np.ndarray((480, 640, 3), dtype=np.uint8, buffer=shm.buf)
@@ -145,7 +144,6 @@ class Master(GUIManagement):
 
     def distance_consumer(self, distance):
         p_laser = Process(target=self.telemetric_laser_process.get_distance, args=(self.q_laser,))
-                                                                                   # ))self.q_z_lock_status,
         p_laser.start()
         while self.laser_on:
             data = self.q_laser.get()
@@ -155,78 +153,18 @@ class Master(GUIManagement):
                 # pass
                 # print('correcting')
                 self.correct_distance(data, self.z_lock_status[1])
-            self.q_laser.put(True)
-            # self.q_z_lock_status.put(self.z_lock_status)
+
+            self.q_z_lock_status.put(self.z_lock_status)
 
         p_laser.terminate()
 
     def correct_distance(self, val, z_lock_distance):
         if val < 130:
-            #TODO insert another lock ? zlock - val < 1 cm (cant move towards object if correction is 1cm or more?)
-            if z_lock_distance + 0.50 < val:
+            if z_lock_distance + 0.5 < val:
                 self.motor.move_Z(z=(z_lock_distance - val) * 100 * self.corr_angle, speed=30, idle=False)
             elif val < z_lock_distance - 0.50:
                 self.motor.move_Z(z=(z_lock_distance - val) * 100 * self.corr_angle, speed=30, idle=False)
 
-    # def data_consumer(self, data_point, line_finished, acquisition_completed):
-    #     pixel = self.global_data_acquisition_parameter.pixel_number()
-    #     line = self.global_data_acquisition_parameter.line_number()
-    #
-    #     p_mapping = Process(target=self.global_data_acquisition_parameter.analyse_type,
-    #                         args=(self.q_data_acquisition_status, self.q_main))
-    #                         # args=(*self.global_data_acquisition_parameter.arg_data_acquisition,)), self.optical_spectrometer_1, self.motor
-    #     p_mapping.start()
-    #     # time.sleep(0.5)
-    #     while self.data_acquisition_status[0]:
-    #         self.data_acquisition_status = self.q_data_acquisition_status.get()
-    #         # print(self.data_acquisition_status)
-    #
-    #         # self.motor_status = self.q_motor_status.get(False)
-    #         # try:
-    #         #     self.motor_status = self.q_motor_status.get(False)
-    #         # except Exception as e:
-    #         #     self.motor_status = (False, False, False)
-    #             # print(e)
-    #         # print(self.motor_status)
-    #         if self.data_acquisition_status[3]:
-    #             # print('supposed to move X even')
-    #             self.motor.move_X((self.x * 10000), self.motor_speed, idle=False)
-    #             self.q_main.put(True)
-    #         if self.data_acquisition_status[4]:
-    #             # print('supposed to move X odd')
-    #             self.motor.move_X(-(self.x * 10000), self.motor_speed, idle=False)
-    #             self.q_main.put(True)
-    #         if self.data_acquisition_status[5]:
-    #             # print('supposed to move Y')
-    #             self.motor.move_Y(-self.pixel_size, self.motor_speed, idle=True)
-    #
-    #
-    #         if self.data_acquisition_status[0]:
-    #             shm = SharedMemory(name=self.global_data_acquisition_parameter.name_shm)
-    #             datacube = np.ndarray(self.global_data_acquisition_parameter.datacube_shape,
-    #                                   dtype=np.uint32, buffer=shm.buf)
-    #             self.global_data_acquisition_parameter.datacube = np.copy(datacube)
-    #
-    #
-    #             data_point.emit(self.global_data_acquisition_parameter.datacube)
-    #             # print(self.data_acquisition_status)
-    #             if self.data_acquisition_status[2] == (pixel - 1):
-    #                 # self.motor.move_Y(-self.pixel_size, self.motor_speed, idle=False)
-    #
-    #                 print('progress line')
-    #                 line_finished.emit(self.data_acquisition_status[1], line)
-    #                 self.saver.backup_line_saver(self.global_data_acquisition_parameter.datacube[self.data_acquisition_status[1], :, :],
-    #                                              self.data_acquisition_status[1])
-    #                 self.q_main.put(True)
-    #
-    #         # time.sleep(0.001)
-    #     shm.close()
-    #     shm.unlink()
-    #     p_mapping.join()
-    #     p_mapping.terminate()
-    #     # line_finished.emit(self.data_acquisition_status[1], self.global_data_acquisition_parameter.line_number())
-    #     time.sleep(0.1)
-    #     acquisition_completed.emit()
 
     def data_consumer(self, data_point, line_finished, acquisition_completed):
         pixel = self.global_data_acquisition_parameter.pixel_number()
@@ -282,34 +220,16 @@ class Master(GUIManagement):
         acquisition_completed.emit()
 
 
-
-    def dummy_consumer(self):
-        queue1 = Queue()
-        queue2 = Queue()
-        p_dummy= Process(target=self.global_data_acquisition_parameter.dummy_test, args=(queue1, queue2))
-        p_dummy.start()
-        while True:
-            try:
-                q = queue1.get(block=False)
-            except Empty:
-                q = (False, 0)
-                print('empty')
-            print(q)
-            if q[0]:
-                print(q[1])
-            else:
-                print('wait')
-            time.sleep(2)
-            queue2.put(True)
-
-
     def acquisition_completed(self):
         comments = self.text_edit_comments.toPlainText()
         handling = DataHandling(self.global_data_acquisition_parameter.datacube, *self.mithra_args)
         handling.data_acquisition_xrf = self.checkbox_xrf.isChecked()
         handling.data_acquisition_ris_lis = self.checkbox_ris_lis.isChecked()
         handling.data_acquisition_swir = self.checkbox_swir.isChecked()
-        handling.data_classifier()
+        handling.data_classifier(self.global_data_acquisition_parameter.white_spectrum_ris_lis,
+                                 self.global_data_acquisition_parameter.dark_spectrum_ris_lis,
+                                 self.global_data_acquisition_parameter.white_spectrum_swir,
+                                 self.global_data_acquisition_parameter.dark_spectrum_swir)
         self.saver.save_as(self.saver.hdf5,
                            self.saver.edf,
                            self.saver.raw,
@@ -328,10 +248,6 @@ class Master(GUIManagement):
         self.push_button_start.setEnabled(True)
         self.push_button_stop.setEnabled(False)
         self.run_counter +=1
-
-    def on_push_button_white_clicked(self):
-        self.dummy_consummer()
-
 
     """ GUI interactions"""
     def closeEvent(self, event):
@@ -380,6 +296,24 @@ class Master(GUIManagement):
     def on_push_button_stop_clicked(self):
         self.push_button_start.setEnabled(True)
         self.push_button_stop.setEnabled(False)
+
+        #TODO
+
+    @pyqtSlot()
+    def on_push_button_white_clicked(self):
+        self.update_params()
+        if self.global_data_acquisition_parameter.data_acquisition_ris_lis:
+             self.global_data_acquisition_parameter.white_spectrum_ris_lis = self.global_data_acquisition_parameter.point_ris_lis()
+        if self.global_data_acquisition_parameter.data_acquisition_swir:
+            self.global_data_acquisition_parameter.white_spectrum_swir =self.global_data_acquisition_parameter.point_swir()
+
+    @pyqtSlot()
+    def on_push_button_dark_clicked(self):
+        self.update_params()
+        if self.global_data_acquisition_parameter.data_acquisition_ris_lis:
+             self.global_data_acquisition_parameter.dark_spectrum_ris_lis = self.global_data_acquisition_parameter.point_ris_lis()
+        if self.global_data_acquisition_parameter.data_acquisition_swir:
+            self.global_data_acquisition_parameter.dark_spectrum_swir =self.global_data_acquisition_parameter.point_swir()
 
     @pyqtSlot()
     def on_line_edit_x_editingFinished(self):
@@ -459,10 +393,26 @@ class Master(GUIManagement):
             QMessageBox.warning(self, "Warning", 'No device connected\n Detail: ' + str(e), QMessageBox.Ok)
 
     @pyqtSlot()
+    def on_push_button_connect_swir_clicked(self):
+        try:
+            self.optical_spectrometer_2.connect_optical_spectrometer()#5.0, 1, self.winId()
+            self.checkbox_swir_connected.setCheckState(True)
+            # self.optical_spectrometer_2.set_configuration()
+            # self.optical_spectrometer_2.start_acq(self.winId(), 1)
+            #
+            # s = self.optical_spectrometer_2.get_spectrum()[0]
+            # print(s)
+            # self.optical_spectrometer_2.stop_acq()
+
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
+
+
+    @pyqtSlot()
     def on_push_button_connect_motor_clicked(self):
         try:
             self.motor.connect_motor()
-            #TODO add not connected managment
+            # TODO add not connected managment
             self.slider_motorspeed_x.setValue(7)
             self.slider_motorspeed_y.setValue(7)
             self.slider_motorspeed_z.setValue(7)
@@ -500,24 +450,6 @@ class Master(GUIManagement):
         self.push_button_lock_z.setEnabled(True)
         self.push_button_unlock_z.setEnabled(False)
         self.z_lock_status = (False, None)
-
-    @pyqtSlot()
-    def on_push_button_white_clicked(self):
-        self.update_params()
-        # self.optical_spectrometer_1.connect_optical_spectrometer()
-        # self.optical_spectrometer_1.set_lamp_enable(1)
-        # self.optical_spectrometer_1.set_integration_time(int(self.acquisition_time / 4))
-        # self.optical_spectrometer_1.start_acq()
-        #
-        # self.optical_spectrometer_1.get_spectrum()[0]
-        # self.optical_spectrometer_1.get_spectrum()[0]
-        # self.optical_spectrometer_1.get_spectrum()[0]
-        # self.optical_spectrometer_1.get_spectrum()[0]
-        #
-        #
-        # self.optical_spectrometer_1.abort_acq()
-        # self.optical_spectrometer_1.set_lamp_enable(0)
-
 
     @pyqtSlot()
     def on_push_button_move_up_clicked(self):
