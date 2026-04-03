@@ -3,7 +3,9 @@ from ctypes import cdll, c_double
 
 class Device:
     def __init__(self):
-        self.lib_avaspec = cdll.LoadLibrary("G:\\DATA\\PyCharm Projects\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_AVANTES\\dll\\avaspecx64.dll")
+        # self.lib_avaspec = cdll.LoadLibrary("G:\\DATA\\PyCharm Projects\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_AVANTES\\dll\\avaspecx64.dll")
+        self.lib_avaspec = cdll.LoadLibrary("C:\\DATA\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_AVANTES\\dll\\avaspecx64.dll")
+
         self.lib_avaspec.AVS_Init(0)
 
     def connect_optical_spectrometer(self):

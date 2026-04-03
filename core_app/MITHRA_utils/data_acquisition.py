@@ -130,7 +130,18 @@ class DataAcquisition(Data):
         return
 
     def point_ris_lis(self, acquisition_time, optical_spectrometer_1):
-        pass
+        self.optical_spectrometer_1.connect_optical_spectrometer()
+        self.optical_spectrometer_1.set_lamp_enable(1)
+        self.optical_spectrometer_1.set_integration_time(int(self.acquisition_time / 4))
+        self.optical_spectrometer_1.start_acq()
+
+        self.optical_spectrometer_1.get_spectrum()[0]
+        self.optical_spectrometer_1.get_spectrum()[0]
+        self.optical_spectrometer_1.get_spectrum()[0]
+        self.optical_spectrometer_1.get_spectrum()[0]
+
+        self.optical_spectrometer_1.abort_acq()
+        self.optical_spectrometer_1.set_lamp_enable(0)
 
     def point_swir(self, acquisition_time, optical_spectrometer_2):
         pass
@@ -466,9 +477,7 @@ class DataAcquisition(Data):
         pass
 
     def dummy_test(self, q_test, q_test2):
-
         for i in range(10):
-
             q_test.put((True, i))
             print('got it')
             time.sleep(1)

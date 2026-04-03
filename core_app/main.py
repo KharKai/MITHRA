@@ -83,8 +83,9 @@ class Master(GUIManagement):
         self.threadpool = QThreadPool.globalInstance()
 
     def update_params(self):
-        self.x = int(self.line_edit_x.text())
-        self.y = int(self.line_edit_y.text())
+        #TODO change and check to float x and y
+        self.x = float(self.line_edit_x.text())
+        self.y = float(self.line_edit_y.text())
         self.pixel_size = int(self.line_edit_pixel_size.text())
         self.acquisition_time = int(self.line_edit_acquisition_time.text())
 
@@ -123,8 +124,10 @@ class Master(GUIManagement):
 
 
     def frame_consumer(self, frame):
-        p_webcam = Process(target=self.webcam_process.get_frame)
+        source = self.spinbox_source_cam.value()
+        p_webcam = Process(target=self.webcam_process.get_frame, args=(source,))
         p_webcam.start()
+        time.sleep(0.5)
         while self.webcam_on:
             shm = SharedMemory(name='shared_memory_webcam')
             data = np.ndarray((480, 640, 3), dtype=np.uint8, buffer=shm.buf)
@@ -141,8 +144,8 @@ class Master(GUIManagement):
         frame.emit(QImage('fonts\\nosignal.jpg'))
 
     def distance_consumer(self, distance):
-        p_laser = Process(target=self.telemetric_laser_process.get_distance, args=(self.q_laser,
-                                                                                   self.q_z_lock_status,))
+        p_laser = Process(target=self.telemetric_laser_process.get_distance, args=(self.q_laser,))
+                                                                                   # ))self.q_z_lock_status,
         p_laser.start()
         while self.laser_on:
             data = self.q_laser.get()
@@ -152,14 +155,15 @@ class Master(GUIManagement):
                 # pass
                 # print('correcting')
                 self.correct_distance(data, self.z_lock_status[1])
-
-            self.q_z_lock_status.put(self.z_lock_status)
+            self.q_laser.put(True)
+            # self.q_z_lock_status.put(self.z_lock_status)
 
         p_laser.terminate()
 
     def correct_distance(self, val, z_lock_distance):
         if val < 130:
-            if z_lock_distance + 0.5 < val:
+            #TODO insert another lock ? zlock - val < 1 cm (cant move towards object if correction is 1cm or more?)
+            if z_lock_distance + 0.50 < val:
                 self.motor.move_Z(z=(z_lock_distance - val) * 100 * self.corr_angle, speed=30, idle=False)
             elif val < z_lock_distance - 0.50:
                 self.motor.move_Z(z=(z_lock_distance - val) * 100 * self.corr_angle, speed=30, idle=False)
@@ -208,7 +212,7 @@ class Master(GUIManagement):
     #             # print(self.data_acquisition_status)
     #             if self.data_acquisition_status[2] == (pixel - 1):
     #                 # self.motor.move_Y(-self.pixel_size, self.motor_speed, idle=False)
-    #                 #TODO maybe add queue or lock for this operation
+    #
     #                 print('progress line')
     #                 line_finished.emit(self.data_acquisition_status[1], line)
     #                 self.saver.backup_line_saver(self.global_data_acquisition_parameter.datacube[self.data_acquisition_status[1], :, :],
@@ -496,6 +500,24 @@ class Master(GUIManagement):
         self.push_button_lock_z.setEnabled(True)
         self.push_button_unlock_z.setEnabled(False)
         self.z_lock_status = (False, None)
+
+    @pyqtSlot()
+    def on_push_button_white_clicked(self):
+        self.update_params()
+        # self.optical_spectrometer_1.connect_optical_spectrometer()
+        # self.optical_spectrometer_1.set_lamp_enable(1)
+        # self.optical_spectrometer_1.set_integration_time(int(self.acquisition_time / 4))
+        # self.optical_spectrometer_1.start_acq()
+        #
+        # self.optical_spectrometer_1.get_spectrum()[0]
+        # self.optical_spectrometer_1.get_spectrum()[0]
+        # self.optical_spectrometer_1.get_spectrum()[0]
+        # self.optical_spectrometer_1.get_spectrum()[0]
+        #
+        #
+        # self.optical_spectrometer_1.abort_acq()
+        # self.optical_spectrometer_1.set_lamp_enable(0)
+
 
     @pyqtSlot()
     def on_push_button_move_up_clicked(self):
