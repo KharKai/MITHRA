@@ -19,7 +19,7 @@ class GUIManagement(QMainWindow, Ui_MainWindow):
         super(GUIManagement, self).__init__(parent)
         self.setupUi(self)
 
-        self.webcam_process = WebcamProcess(1) #TODO implement source change
+        self.webcam_process = WebcamProcess() #TODO implement source change
         self.webcam_on = False
 
         self.telemetric_laser_process = TelemetricLaserProcess()

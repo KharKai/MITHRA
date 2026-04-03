@@ -112,7 +112,7 @@ class Device:
 
         self.eout = 1       # 0x01
         self.ein = 129      # 0x81
-        self.timeout = 500
+        self.timeout = 2000
 
     # def __del__(self):
     #     if self.dev is None:

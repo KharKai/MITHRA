@@ -1,12 +1,14 @@
 import sys
 import time
 import numpy as np
+import matplotlib.pyplot as plt
 
 from multiprocessing.shared_memory import SharedMemory
 
 from core_app.controllers_TOREMOVE.controller_Amptek import mca8000d
 from core_app.controllers_TOREMOVE.controller_QePro import qepro
 from core_app.controllers_TOREMOVE.controller_Owis import owis
+from core_app.controllers_TOREMOVE.controller_AVANTES import avaspec_nir256
 
 from core_app.MITHRA_utils.acquisition_parameters import AcquisitionParameters
 
@@ -30,8 +32,11 @@ class Data(AcquisitionParameters):
 
         self.datacube_shape = (self.line_number(), self.pixel_number(), 0)
 
-        self.white_spectrum = np.zeros(1044)
-        self.dark_spectrum = np.zeros(1044)
+        self.white_spectrum_ris_lis = np.ones(1044)
+        self.dark_spectrum_ris_lis = np.zeros(1044)
+
+        self.white_spectrum_swir = np.ones(256)
+        self.dark_spectrum_swir = np.zeros(256)
 
 
 class DataAcquisition(Data):
@@ -129,14 +134,221 @@ class DataAcquisition(Data):
         self.spectrum_xrf = x_ray_detector.spectrum(True, False)
         return
 
-    def point_ris_lis(self, acquisition_time, optical_spectrometer_1):
-        pass
+    def point_ris_lis(self):
+        fig = plt.figure()
+        ax1 = fig.add_subplot(221)
+        ax2 = fig.add_subplot(222)
+        ax3 = fig.add_subplot(223)
+        ax4 = fig.add_subplot(224)
 
-    def point_swir(self, acquisition_time, optical_spectrometer_2):
-        pass
+        optical_spectrometer_1 = qepro.Device()
+        optical_spectrometer_1.connect_optical_spectrometer()
 
-    def mapping_xrf_ris_lis_swir(self, q_status, x_ray_detector, optical_spectrometer1, optical_spectrometer_2, motor):
-        pass
+        optical_spectrometer_1.set_trigger_mode(0)
+        optical_spectrometer_1.set_integration_time(int(self.acquisition_time / 4))
+
+        optical_spectrometer_1.set_lamp_enable(1)
+        optical_spectrometer_1.start_acq()
+        s = optical_spectrometer_1.get_spectrum()[0]
+        ax1.plot(s)
+        s = optical_spectrometer_1.get_spectrum()[0]
+        ax2.plot(s)
+        s = optical_spectrometer_1.get_spectrum()[0]
+        ax3.plot(s)
+        s = optical_spectrometer_1.get_spectrum()[0]
+        ax4.plot(s)
+
+        optical_spectrometer_1.abort_acq()
+        plt.show()
+
+    def point_swir(self):
+        # fig = plt.figure()
+        # ax1 = fig.add_subplot(111)
+
+        optical_spectrometer_2 = avaspec_nir256.Device()
+        optical_spectrometer_2.connect_optical_spectrometer()
+
+        optical_spectrometer_2.set_configuration(self.acquisition_time / 2, 2)
+        optical_spectrometer_2.start_acq(0, -1)
+        time.sleep(self.acquisition_time)
+        s = optical_spectrometer_2.get_spectrum()[0]
+        # ax1.plot(s)
+
+        optical_spectrometer_2.stop_acq()
+        # plt.show()
+        return s
+
+    def mapping_xrf_ris_lis_swir(self, q_status, q_main, q_motor):
+        line = self.line_number()
+        pixel = self.pixel_number()
+
+        x_ray_detector = mca8000d.Device()
+        x_ray_detector.connect_xrf_spectrometer()
+
+        optical_spectrometer_1 = qepro.Device()
+        optical_spectrometer_1.connect_optical_spectrometer()
+
+        optical_spectrometer_1.set_lamp_enable(1)
+        optical_spectrometer_1.start_acq()
+        optical_spectrometer_1.get_spectrum()
+        optical_spectrometer_1.abort_acq()
+        optical_spectrometer_1.set_lamp_enable(0)
+
+        optical_spectrometer_2 = avaspec_nir256.Device()
+        optical_spectrometer_2.connect_optical_spectrometer()
+
+        optical_spectrometer_2.set_configuration(self.acquisition_time / 2, 2)
+        optical_spectrometer_2.start_acq(0, -1)
+
+        try:
+            sh_mem_xrf_ris_lis_swir = SharedMemory(create=True, size=(256 * 4 + 1044 * 16 + 2044) * pixel * line,
+                                                  name='shared_memory_xrf_ris_lis_swir')
+        except FileExistsError:
+            sh_mem_xrf_ris_lis_swir = SharedMemory(name='shared_memory_xrf_ris_lis_swir')
+        map_xrf_ris_lis_swir_buffer = np.ndarray((line, pixel, 1044 * 4 + 511 + 256), dtype=np.uint32,
+                                                buffer=sh_mem_xrf_ris_lis_swir.buf)
+
+        optical_spectrometer_1.set_trigger_mode(0)
+        optical_spectrometer_1.set_integration_time(int(self.acquisition_time / 4))
+        optical_spectrometer_1.set_single_strobe(1)
+        optical_spectrometer_1.set_single_strobe_delay(2000)  # in microsec
+        optical_spectrometer_1.set_single_strobe_width(int(((self.acquisition_time / 4) - 4) * 1000))
+
+        x_ray_detector.spectrum(True, True)
+
+        i = 0
+        while i < line:
+            j = 0
+            optical_spectrometer_1.clear_buffer()
+            # optical_spectrometer_1.set_buffer_size(1000)
+            optical_spectrometer_2.start_acq(0, -1)
+            x_ray_detector.enable_MCA_MCS()
+            # q_motor.put((True, False))
+            if i % 2 == 0:
+                q_motor.put((True, False, False))
+                # motor.move_X((self.x * 10000), speed, idle=False)
+            if i % 2 == 1:
+                q_motor.put((False, True, False))
+            #     motor.move_X(-(self.x * 10000), speed, idle=False)
+            q_main.get()
+            x_ray_detector.spectrum(True, True)
+            optical_spectrometer_1.set_buffer_size(pixel * 4)
+            optical_spectrometer_1.start_acq()
+
+            s, n, tick, integ, t = optical_spectrometer_1.get_spectrum()  # [0], dev.get_spectrum()[1]
+            print('i=' + str(i))
+            print(n)
+
+            start = time.perf_counter()
+            while j < pixel:
+                # q_motor.put((False, False, False))
+                # if i % 2 == 0:
+                #     map_xrf_ris_lis_buffer[i, j, 511:1555] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, j, 1555:2599] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, j, 2599:3643] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, j, 3643:] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, j, :511] = np.random.randint(0, 1000, 511, dtype=np.uint32)
+                # if i % 2 == 1:
+                #     map_xrf_ris_lis_buffer[i, -j-1, 511:1555] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, -j-1, 1555:2599] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, -j-1, 2599:3643] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, -j-1, 3643:] = np.random.randint(0, 1000, 1044, dtype=np.uint32)
+                #     time.sleep(0.02)
+                #     map_xrf_ris_lis_buffer[i, -j-1, :511] = np.random.randint(0, 1000, 511, dtype=np.uint32)
+
+                end = time.perf_counter()
+                clock = end - start
+                while clock < (self.acquisition_time / 1000):
+                    end = time.perf_counter()
+                    clock = end - start
+                start = time.perf_counter()
+
+                if i % 2 == 0:
+                    # map_xrf_ris_lis_buffer[i, j, 511:1555] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, j, 1555:2599] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, j, 2599:3643] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, j, 3643:] = optical_spectrometer_1.get_spectrum()[0]
+                    map_xrf_ris_lis_swir_buffer[i, j, 4687:] = np.array(optical_spectrometer_2.get_spectrum()[0])
+                    map_xrf_ris_lis_swir_buffer[i, j, :511] = np.array(x_ray_detector.spectrum(False, True)[0],
+                                                                  dtype=np.uint32)
+
+                if i % 2 == 1:
+                    # map_xrf_ris_lis_buffer[i, -j - 1, 511:1555] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, -j - 1, 1555:2599] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, -j - 1, 2599:3643] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, -j - 1, 3643:] = optical_spectrometer_1.get_spectrum()[0]
+                    map_xrf_ris_lis_swir_buffer[i, -j - 1, 4687: ] = np.array(optical_spectrometer_2.get_spectrum()[0])
+                    map_xrf_ris_lis_swir_buffer[i, -j - 1, :511] = np.array(x_ray_detector.spectrum(False, True)[0],
+                                                                       dtype=np.uint32)
+
+                # q_status.put((True, i, j, False, False, False))
+                j += 1
+
+            optical_spectrometer_1.abort_acq()
+            x_ray_detector.disable_MCA_MCS()
+            optical_spectrometer_2.stop_acq()
+            time.sleep(0.5)
+
+            for k in range(pixel):
+                if i % 2 == 0:
+                    for _ in range(4):
+                        spec, n_, tick, integ, t = optical_spectrometer_1.get_spectrum()
+                        # print(str(n_ - n) + ' (' + str(n_) + ')')
+                        if (n_ - n) % 4 == 0:
+                            map_xrf_ris_lis_swir_buffer[i, k, 511:1555] = spec  # [0]
+                        if (n_ - n) % 4 == 1:
+                            map_xrf_ris_lis_swir_buffer[i, k, 1555:2599] = spec
+                        if (n_ - n) % 4 == 2:
+                            map_xrf_ris_lis_swir_buffer[i, k, 2599:3643] = spec
+                        if (n_ - n) % 4 == 3:
+                            map_xrf_ris_lis_swir_buffer[i, k, 3643:4687] = spec
+
+                if i % 2 == 1:
+                    for _ in range(4):
+                        spec, n_, tick, integ, t = optical_spectrometer_1.get_spectrum()
+                        # print(str(n_ - n) + ' (' + str(n_) + ')')
+                        if (n_ - n) % 4 == 0:
+                            map_xrf_ris_lis_swir_buffer[i, -k - 1, 511:1555] = spec  # [0]
+                        if (n_ - n) % 4 == 1:
+                            map_xrf_ris_lis_swir_buffer[i, -k - 1, 1555:2599] = spec
+                        if (n_ - n) % 4 == 2:
+                            map_xrf_ris_lis_swir_buffer[i, -k - 1, 2599:3643] = spec
+                        if (n_ - n) % 4 == 3:
+                            map_xrf_ris_lis_swir_buffer[i, -k - 1, 3643:4687] = spec
+                    # map_xrf_ris_lis_buffer[i, -k-1, 511:1555], n_, tick, integ_, t = optical_spectrometer_1.get_spectrum()
+                    # print(str(n_ - n) + ' (' + str(n_) + ')')
+                    # map_xrf_ris_lis_buffer[i, -k-1, 1555:2599] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, -k-1, 2599:3643] = optical_spectrometer_1.get_spectrum()[0]
+                    # map_xrf_ris_lis_buffer[i, -k-1, 3643:] = optical_spectrometer_1.get_spectrum()[0]
+
+            time.sleep(0.5)
+
+            q_motor.put((False, False, True))  # motor.move_Y(-self.pixel_size, speed, idle=True)
+            q_main.get()
+
+            optical_spectrometer_1.set_lamp_enable(1)
+            optical_spectrometer_1.start_acq()
+            optical_spectrometer_1.get_spectrum()
+            optical_spectrometer_1.abort_acq()
+            optical_spectrometer_1.set_lamp_enable(0)
+
+            q_status.put((True, i))
+            i += 1
+            time.sleep(0.5)
+            q_main.get()
+
+        q_status.put((False, i))
+        sh_mem_xrf_ris_lis_swir.close()
+        time.sleep(1)
+        sh_mem_xrf_ris_lis_swir.unlink()
+
 
     def mapping_xrf_ris_lis(self, q_status, q_main, q_motor):
         line = self.line_number()
@@ -462,17 +674,73 @@ class DataAcquisition(Data):
         time.sleep(1)
         sh_mem_ris_lis.unlink()
 
-    def mapping_swir(self):
-        pass
+    def mapping_swir(self, q_status, q_main, q_motor):
+        line = self.line_number()
+        pixel = self.pixel_number()
 
-    def dummy_test(self, q_test, q_test2):
+        optical_spectrometer_2 = avaspec_nir256.Device()
+        optical_spectrometer_2.connect_optical_spectrometer()
 
-        for i in range(10):
+        optical_spectrometer_2.set_configuration(self.acquisition_time/2, 2)
+        optical_spectrometer_2.start_acq(0, -1)
 
-            q_test.put((True, i))
-            print('got it')
-            time.sleep(1)
-            q_test2.get()
+        # motor = owis.Device()
+        # motor.connect_motor()
+
+        try:
+            sh_mem_swir = SharedMemory(create=True, size=256 * pixel * line, name='shared_memory_swir')
+        except FileExistsError:
+            sh_mem_swir = SharedMemory(name='shared_memory_swir')
+        map_swir_buffer = np.ndarray((line, pixel, 256), dtype=np.uint32, buffer=sh_mem_swir.buf)
+
+
+
+        i = 0
+        while i < line:
+            j = 0
+            optical_spectrometer_2.start_acq(0, -1)
+            if i % 2 == 0:
+                q_motor.put((True, False, False))
+                # motor.move_X((self.x * 10000), speed, idle=False)
+            if i % 2 == 1:
+                q_motor.put((False, True, False))
+            q_main.get()
+
+            start = time.perf_counter()
+            while j < pixel:
+                end = time.perf_counter()
+                clock = end - start
+                while clock < (self.acquisition_time / 1000):
+                    end = time.perf_counter()
+                    clock = end - start
+                start = time.perf_counter()
+                # xrf_spectrum = x_ray_detector.spectrum(True, True)[0] # Careful that XRF array is uint32
+                # xrf_spectrum = np.random.randint(0, 1000, 512, dtype=np.uint32)
+                if i % 2 == 0:
+                    map_swir_buffer[i, j, :] = np.array(optical_spectrometer_2.get_spectrum()[0], dtype=np.uint32)  # xrf_spectrum
+                elif i % 2 == 1:
+                    map_swir_buffer[i, -j - 1, :] = np.array(optical_spectrometer_2.get_spectrum()[0], dtype=np.uint32)  # xrf_spectrum
+                # q_status.put((True, i))
+                j += 1
+            # i+=1
+
+            optical_spectrometer_2.stop_acq()
+            time.sleep(0.5)
+            q_motor.put((False, False, True))  # motor.move_Y(-self.pixel_size, speed, idle=True)
+            q_main.get()
+
+            q_status.put((True, i))
+            i += 1
+            time.sleep(0.5)
+            q_main.get()
+
+            # time.sleep(1)
+            # motor.move_Y(-self.pixel_size, speed, idle=True)
+
+        q_status.put((False, i))
+        sh_mem_swir.close()
+        time.sleep(1)
+        sh_mem_swir.unlink()
 
 
 
