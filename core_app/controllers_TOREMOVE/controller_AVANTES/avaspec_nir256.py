@@ -11,8 +11,8 @@ VERSION_LEN = 16
 USER_ID_LEN = 64
 WM_MEAS_READY = 0x8001
 
-dll = 'G:\\DATA\\PyCharm Projects\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_AVANTES\\dll\\avaspecx64.dll'
-
+# dll = 'G:\\DATA\\PyCharm Projects\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_AVANTES\\dll\\avaspecx64.dll'
+dll = 'C:\\DATA\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_AVANTES\\dll\\avaspecx64.dll'
 
 
 class Device:

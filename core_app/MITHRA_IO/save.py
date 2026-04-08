@@ -7,6 +7,7 @@ import json
 
 import numpy as np
 
+import time
 from datetime import datetime
 
 # from core_app.MITHRA_utils.acquisition_parameters import AcquisitionParameters
@@ -118,11 +119,67 @@ class DataSaver(DataAcquisition):
                 map_swir.attrs[k] = m_swir[k]
             map_swir.create_dataset('data swir', shape=data_swir.shape, data=data_swir)
 
-    def edf_saver(self, data_xrf=None, data_ris=None, data_lis1=None, data_lis2=None, data_lis3=None, data_swir=None, comments=''):
-        pass
+    def edf_saver(self, data_xrf=None, data_ris=None, data_lis1=None, data_lis2=None, data_lis3=None, data_swir=None, comments='', name=None):
+        if name is not None:
+            f = name
+        else:
+            f = self.filename
+
+        if data_xrf is not None:
+            data = edf.EdfFile(self.path + '\\' + f + '_data_xrf.edf', access="ab+")
+            data.WriteImage(self.metadata_xrf(self.V, self.mA, comments), data_xrf, Append=0)
+        if data_ris is not None:
+            data = edf.EdfFile(self.path + '\\' + f + '_data_ris.edf', access="ab+")
+            data.WriteImage(self.metadata_ris_lis(comments), data_ris, Append=0)
+        if data_lis1 is not None:
+            data = edf.EdfFile(self.path + '\\' + f + '_data_1lis.edf', access="ab+")
+            data.WriteImage(self.metadata_ris_lis(comments), data_lis1, Append=0)
+        if data_lis2 is not None:
+            data = edf.EdfFile(self.path + '\\' + f + '_data_2lis.edf', access="ab+")
+            data.WriteImage(self.metadata_ris_lis(comments), data_lis2, Append=0)
+        if data_lis3 is not None:
+            data = edf.EdfFile(self.path + '\\' + f + '_data_3lis.edf', access="ab+")
+            data.WriteImage(self.metadata_ris_lis(comments), data_lis3, Append=0)
+        if data_swir is not None:
+            data = edf.EdfFile(self.path + '\\' + f + '_data_swir.edf', access="ab+")
+            data.WriteImage(self.metadata_swir(comments), data_swir, Append=0)
+        #TODO to be refined properly ? (with MCA calib)
 
     def raw_saver(self, data_xrf=None, data_ris=None, data_lis1=None, data_lis2=None, data_lis3=None, data_swir=None, comments=''):
         pass
+
+    def array2SpecMca(self, data):
+        """ Write a python array into a Spec array.
+            Return the string containing the Spec array
+            From PyMCA.PyMcaGui.plotting.PlotWindow
+        """
+        tmpstr = "@A "
+        length = len(data)
+        for idx in range(0, length, 16):
+            if idx + 15 < length:
+                for i in range(0, 16):
+                    tmpstr += "%.8g " % data[idx + i]
+                if idx + 16 != length:
+                    tmpstr += "\\"
+            else:
+                for i in range(idx, length):
+                    tmpstr += "%.8g " % data[i]
+            tmpstr += "\n"
+        return tmpstr
+
+    def mca_saver(self, name, data, comments):
+        legend = comments
+        ffile = open(self.path + '\\' + name + '.mca', 'w', newline='\n')
+        ffile.write("#F %s\n" % (self.path + '\\' + name + '.mca'))
+        ffile.write("#D %s\n" % (time.ctime(time.time())))
+        ffile.write("\n")
+        ffile.write("#S 1 %s\n" % legend)
+        ffile.write("#D %s\n" % (time.ctime(time.time())))
+        ffile.write("#@MCA %16C\n")
+        ffile.write("#@CHANN %d %d %d 1\n" % (data.shape[0], 0, 0))
+        ffile.write("#@CALIB %.7g %.7g %.7g\n" % (0, 1, 0))
+        ffile.write(self.array2SpecMca(data))
+        ffile.write("\n")
 
     def config_saver(self, cfg):
         json.dump(cfg, open(self.path + '\\' + datetime.today().strftime('%Y-%m-%d') + '_MITHRA.cfg', 'w'), indent=4)

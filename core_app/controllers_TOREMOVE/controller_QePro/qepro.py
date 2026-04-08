@@ -127,6 +127,12 @@ class Device:
             raise ValueError('Spectrometer not found')
         self.dev.set_configuration()
 
+    def disconnect_optical_spectrometer(self):
+        try:
+            usb.util.dispose_resources(self.dev)
+        except Exception as e:
+            print(e)
+
     def sendCmd(self, message_opcode_1, message_opcode_2, message_opcode_3, message_opcode_4, data=None, data_length=None):
         """sends raw cmd over usb"""
         footer = bytearray(4)

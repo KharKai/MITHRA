@@ -3,6 +3,7 @@ import time
 from fileinput import filename
 
 import numpy as np
+import matplotlib.pyplot as plt
 import math
 import cv2
 
@@ -52,8 +53,8 @@ class Master(GUIManagement):
         self.z_lock_status = (False, None) # package of z_lock_status and z_lock_distance
         self.q_z_lock_status = Queue()
 
-        self.cfg = DataLoader().load_cfg('G:\DATA\PyCharm Projects\MITHRA\core_app\MITHRA.cfg')
-        # self.cfg = DataLoader().load_cfg('C:\Data\MITHRA\core_app\MITHRA.cfg')
+        # self.cfg = DataLoader().load_cfg('G:\DATA\PyCharm Projects\MITHRA\core_app\MITHRA.cfg')
+        self.cfg = DataLoader().load_cfg('C:\Data\MITHRA\core_app\MITHRA.cfg')
 
         self.analyse_list = []
         self.run_counter = 0
@@ -303,17 +304,66 @@ class Master(GUIManagement):
     def on_push_button_white_clicked(self):
         self.update_params()
         if self.global_data_acquisition_parameter.data_acquisition_ris_lis:
-             self.global_data_acquisition_parameter.white_spectrum_ris_lis = self.global_data_acquisition_parameter.point_ris_lis()
+            self.global_data_acquisition_parameter.white_spectrum_ris_lis = self.global_data_acquisition_parameter.point_ris_lis(True)
+            #TODO add choice to save or not
+            self.saver.mca_saver('white_ris',
+                                 self.global_data_acquisition_parameter.white_spectrum_ris_lis,
+                                 ('integration time: ' + str(self.acquisition_time / 4) + ' ms'))
         if self.global_data_acquisition_parameter.data_acquisition_swir:
-            self.global_data_acquisition_parameter.white_spectrum_swir =self.global_data_acquisition_parameter.point_swir()
+            self.global_data_acquisition_parameter.white_spectrum_swir =self.global_data_acquisition_parameter.point_swir(True)
+            # TODO add choice to save or not
+            self.saver.mca_saver('white_swir',
+                                 self.global_data_acquisition_parameter.white_spectrum_swir,
+                                 ('integration time: ' + str(self.acquisition_time / 2) + ' ms, avg: 2'))
+
+    @pyqtSlot()
+    def on_push_button_load_white_clicked(self):
+        file_name = QFileDialog.getOpenFileName(filter="MCA File (*.mca)")
+        if 'ris' in file_name[0]:
+            self.global_data_acquisition_parameter.white_spectrum_ris_lis = DataLoader().mca_loader(file_name[0])
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.plot(self.global_data_acquisition_parameter.white_spectrum_ris_lis)
+            plt.show()
+        if 'swir' in file_name[0]:
+            self.global_data_acquisition_parameter.white_spectrum_swir = DataLoader().mca_loader(file_name[0])
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.plot(self.global_data_acquisition_parameter.white_spectrum_swir)
+            plt.show()
 
     @pyqtSlot()
     def on_push_button_dark_clicked(self):
         self.update_params()
         if self.global_data_acquisition_parameter.data_acquisition_ris_lis:
              self.global_data_acquisition_parameter.dark_spectrum_ris_lis = self.global_data_acquisition_parameter.point_ris_lis()
+             # TODO add choice to save or not
+             self.saver.mca_saver('dark_ris',
+                                 self.global_data_acquisition_parameter.dark_spectrum_ris_lis,
+                                 ('integration time: ' + str(self.acquisition_time / 4) + ' ms'))
         if self.global_data_acquisition_parameter.data_acquisition_swir:
             self.global_data_acquisition_parameter.dark_spectrum_swir =self.global_data_acquisition_parameter.point_swir()
+            # TODO add choice to save or not
+            self.saver.mca_saver('dark_swir',
+                                 self.global_data_acquisition_parameter.dark_spectrum_swir,
+                                 ('integration time: ' + str(self.acquisition_time / 2) + ' ms, avg: 2'))
+
+
+    @pyqtSlot()
+    def on_push_button_load_dark_clicked(self):
+        file_name = QFileDialog.getOpenFileName(filter="MCA File (*.mca)")
+        if 'ris' in file_name[0]:
+            self.global_data_acquisition_parameter.dark_spectrum_ris_lis = DataLoader().mca_loader(file_name[0])
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.plot(self.global_data_acquisition_parameter.dark_spectrum_ris_lis)
+            plt.show()
+        if 'swir' in file_name[0]:
+            self.global_data_acquisition_parameter.dark_spectrum_swir = DataLoader().mca_loader(file_name[0])
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.plot(self.global_data_acquisition_parameter.dark_spectrum_swir)
+            plt.show()
 
     @pyqtSlot()
     def on_line_edit_x_editingFinished(self):
@@ -397,9 +447,9 @@ class Master(GUIManagement):
         try:
             self.optical_spectrometer_2.connect_optical_spectrometer()#5.0, 1, self.winId()
             self.checkbox_swir_connected.setCheckState(True)
-            # self.optical_spectrometer_2.set_configuration()
+            # self.optical_spectrometer_2.set_configuration(40, 2)
             # self.optical_spectrometer_2.start_acq(self.winId(), 1)
-            #
+            # time.sleep(0.1)
             # s = self.optical_spectrometer_2.get_spectrum()[0]
             # print(s)
             # self.optical_spectrometer_2.stop_acq()
@@ -411,13 +461,16 @@ class Master(GUIManagement):
     @pyqtSlot()
     def on_push_button_connect_motor_clicked(self):
         try:
-            self.motor.connect_motor()
-            # TODO add not connected managment
-            self.slider_motorspeed_x.setValue(7)
-            self.slider_motorspeed_y.setValue(7)
-            self.slider_motorspeed_z.setValue(7)
-            self.checkbox_motor_connected.setCheckState(True)
-            QMessageBox.information(self, "Information", 'Linear stages connected', QMessageBox.Ok)
+            c = self.motor.connect_motor()
+            if c:
+                QMessageBox.information(self, "Information", 'Linear stages connected', QMessageBox.Ok)
+                self.slider_motorspeed_x.setValue(7)
+                self.slider_motorspeed_y.setValue(7)
+                self.slider_motorspeed_z.setValue(7)
+                self.checkbox_motor_connected.setCheckState(True)
+            else:
+                QMessageBox.warning(self, "Warning", 'Linear stages not connected', QMessageBox.Ok)
+
         except Exception as e:
             QMessageBox.warning(self, "Warning", str(e), QMessageBox.Ok)
 

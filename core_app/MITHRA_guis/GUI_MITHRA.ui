@@ -610,7 +610,7 @@
                <item>
                 <layout class="QVBoxLayout" name="verticalLayout_14">
                  <item>
-                  <layout class="QHBoxLayout" name="horizontalLayout_26">
+                  <layout class="QHBoxLayout" name="horizontalLayout_50">
                    <item>
                     <layout class="QVBoxLayout" name="verticalLayout_13">
                      <item>
@@ -749,64 +749,42 @@
                       </widget>
                      </item>
                      <item>
-                      <widget class="QPushButton" name="push_button_white">
-                       <property name="text">
-                        <string>White spectrum</string>
-                       </property>
-                      </widget>
+                      <layout class="QHBoxLayout" name="horizontalLayout_26">
+                       <item>
+                        <widget class="QPushButton" name="push_button_white">
+                         <property name="text">
+                          <string>White</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QPushButton" name="push_button_load_white">
+                         <property name="text">
+                          <string>Load</string>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
                      </item>
                      <item>
-                      <widget class="QPushButton" name="push_button_dark">
-                       <property name="text">
-                        <string>Dark spectrum</string>
-                       </property>
-                      </widget>
+                      <layout class="QHBoxLayout" name="horizontalLayout_49">
+                       <item>
+                        <widget class="QPushButton" name="push_button_dark">
+                         <property name="text">
+                          <string>Dark</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QPushButton" name="push_button_load_dark">
+                         <property name="text">
+                          <string>Load</string>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
                      </item>
                     </layout>
-                   </item>
-                  </layout>
-                 </item>
-                 <item>
-                  <widget class="Line" name="line">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <layout class="QHBoxLayout" name="horizontalLayout_21">
-                   <item>
-                    <widget class="QLabel" name="motorSpeed">
-                     <property name="text">
-                      <string>Motor speed =</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLineEdit" name="line_edit_motor_speed">
-                     <property name="enabled">
-                      <bool>false</bool>
-                     </property>
-                     <property name="maximumSize">
-                      <size>
-                       <width>50</width>
-                       <height>20</height>
-                      </size>
-                     </property>
-                     <property name="text">
-                      <string>6.25</string>
-                     </property>
-                     <property name="alignment">
-                      <set>Qt::AlignCenter</set>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QLabel" name="motorSpeedUnit">
-                     <property name="text">
-                      <string>mm/s</string>
-                     </property>
-                    </widget>
                    </item>
                   </layout>
                  </item>
@@ -1011,6 +989,50 @@
                     </spacer>
                    </item>
                   </layout>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="Line" name="line">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_21">
+                 <item>
+                  <widget class="QLabel" name="motorSpeed">
+                   <property name="text">
+                    <string>Motor speed =</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="line_edit_motor_speed">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>50</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>6.25</string>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignCenter</set>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="motorSpeedUnit">
+                   <property name="text">
+                    <string>mm/s</string>
+                   </property>
+                  </widget>
                  </item>
                 </layout>
                </item>
@@ -2414,7 +2436,7 @@
      <x>0</x>
      <y>0</y>
      <width>1811</width>
-     <height>26</height>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFiles">

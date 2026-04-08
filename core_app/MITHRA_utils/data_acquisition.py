@@ -62,7 +62,7 @@ class DataAcquisition(Data):
                 self.arg_data_acquisition = (q_data_acquisition_status, )
                 self.name_shm = 'shared_memory_xrf_ris_lis_swir'
                 shape = list(self.datacube_shape)
-                shape[2] = 512 + 1044 * 4 + 256
+                shape[2] = 511 + 1044 * 4 + 256
                 self.datacube_shape = tuple(shape)
                 # print('xrf ris lis swir selected')
 
@@ -134,7 +134,9 @@ class DataAcquisition(Data):
         self.spectrum_xrf = x_ray_detector.spectrum(True, False)
         return
 
-    def point_ris_lis(self):
+    def point_ris_lis(self, ref):
+        avg = 20
+
         fig = plt.figure()
         ax1 = fig.add_subplot(221)
         ax2 = fig.add_subplot(222)
@@ -144,43 +146,101 @@ class DataAcquisition(Data):
         optical_spectrometer_1 = qepro.Device()
         optical_spectrometer_1.connect_optical_spectrometer()
 
-        optical_spectrometer_1.set_trigger_mode(0)
-        optical_spectrometer_1.set_integration_time(int(self.acquisition_time / 4))
-
         optical_spectrometer_1.set_lamp_enable(1)
         optical_spectrometer_1.start_acq()
-        s = optical_spectrometer_1.get_spectrum()[0]
-        ax1.plot(s)
-        s = optical_spectrometer_1.get_spectrum()[0]
-        ax2.plot(s)
-        s = optical_spectrometer_1.get_spectrum()[0]
-        ax3.plot(s)
-        s = optical_spectrometer_1.get_spectrum()[0]
-        ax4.plot(s)
-
+        optical_spectrometer_1.get_spectrum()
         optical_spectrometer_1.abort_acq()
-        plt.show()
+        optical_spectrometer_1.set_lamp_enable(0)
 
-    def point_swir(self):
-        # fig = plt.figure()
-        # ax1 = fig.add_subplot(111)
+        optical_spectrometer_1.set_trigger_mode(0)
+        optical_spectrometer_1.set_integration_time(int(self.acquisition_time / 4))#int(self.acquisition_time / 4)20
+        optical_spectrometer_1.set_single_strobe(1)
+        optical_spectrometer_1.set_single_strobe_delay(2000)  # in microsec
+        optical_spectrometer_1.set_single_strobe_width(int(((self.acquisition_time / 4) - 4) * 1000))
+
+        optical_spectrometer_1.clear_buffer()
+        optical_spectrometer_1.start_acq()
+
+        s1 = optical_spectrometer_1.get_spectrum()[0]
+        s2 = optical_spectrometer_1.get_spectrum()[0]
+        s3 = optical_spectrometer_1.get_spectrum()[0]
+        s4 = optical_spectrometer_1.get_spectrum()[0]
+
+        if ref:
+            w = np.zeros((avg, 1044))
+            w[0, :] = s4
+            ax4.plot(s4)
+            for i in range(avg - 1):
+                optical_spectrometer_1.get_spectrum()
+                optical_spectrometer_1.get_spectrum()
+                optical_spectrometer_1.get_spectrum()
+                s = optical_spectrometer_1.get_spectrum()[0]
+                ax4.plot(s)
+                w[i + 1, :] = s
+
+
+            # time.sleep(5)
+            optical_spectrometer_1.abort_acq()
+
+            optical_spectrometer_1.disconnect_optical_spectrometer()
+
+            white = np.mean(w, axis=0)
+            ax1.plot(s1)
+            ax2.plot(s2)
+            ax3.plot(s3)
+            ax4.plot(white, linestyle='--')
+            # ax4.plot(s)
+
+            plt.show()
+            return white
+        else:
+            return s1, s2, s3, s4
+
+    def point_swir(self, ref):
+        avg = 20
+
+        fig = plt.figure()
+        ax1 = fig.add_subplot(111)
 
         optical_spectrometer_2 = avaspec_nir256.Device()
         optical_spectrometer_2.connect_optical_spectrometer()
 
-        optical_spectrometer_2.set_configuration(self.acquisition_time / 2, 2)
+        optical_spectrometer_2.set_configuration(int(self.acquisition_time / 2), 2)
         optical_spectrometer_2.start_acq(0, -1)
-        time.sleep(self.acquisition_time)
+        time.sleep(int(self.acquisition_time) / 1000)
         s = optical_spectrometer_2.get_spectrum()[0]
-        # ax1.plot(s)
+        if ref:
+            w = np.zeros((avg, 256))
+            w[0, :] = s
 
-        optical_spectrometer_2.stop_acq()
-        # plt.show()
-        return s
+            for i in range(avg - 1):
+                time.sleep(int(self.acquisition_time) / 1000)
+                s = optical_spectrometer_2.get_spectrum()[0]
+                # print(s)
+                ax1.plot(s)
+                w[i + 1, :] = s
+
+            optical_spectrometer_2.stop_acq()
+
+            white = np.mean(w, axis=0)
+
+            ax1.plot(white, linestyle='--')
+            plt.show()
+            return white
+        else:
+            return s
 
     def mapping_xrf_ris_lis_swir(self, q_status, q_main, q_motor):
         line = self.line_number()
         pixel = self.pixel_number()
+
+        try:
+            sh_mem_xrf_ris_lis_swir = SharedMemory(create=True, size=(256 * 4 + 1044 * 16 + 2044) * pixel * line,
+                                                  name='shared_memory_xrf_ris_lis_swir')
+        except FileExistsError:
+            sh_mem_xrf_ris_lis_swir = SharedMemory(name='shared_memory_xrf_ris_lis_swir')
+
+
 
         x_ray_detector = mca8000d.Device()
         x_ray_detector.connect_xrf_spectrometer()
@@ -196,15 +256,11 @@ class DataAcquisition(Data):
 
         optical_spectrometer_2 = avaspec_nir256.Device()
         optical_spectrometer_2.connect_optical_spectrometer()
-
         optical_spectrometer_2.set_configuration(self.acquisition_time / 2, 2)
-        optical_spectrometer_2.start_acq(0, -1)
+        # optical_spectrometer_2.start_acq(0, -1)
 
-        try:
-            sh_mem_xrf_ris_lis_swir = SharedMemory(create=True, size=(256 * 4 + 1044 * 16 + 2044) * pixel * line,
-                                                  name='shared_memory_xrf_ris_lis_swir')
-        except FileExistsError:
-            sh_mem_xrf_ris_lis_swir = SharedMemory(name='shared_memory_xrf_ris_lis_swir')
+
+
         map_xrf_ris_lis_swir_buffer = np.ndarray((line, pixel, 1044 * 4 + 511 + 256), dtype=np.uint32,
                                                 buffer=sh_mem_xrf_ris_lis_swir.buf)
 
@@ -236,8 +292,8 @@ class DataAcquisition(Data):
             optical_spectrometer_1.start_acq()
 
             s, n, tick, integ, t = optical_spectrometer_1.get_spectrum()  # [0], dev.get_spectrum()[1]
-            print('i=' + str(i))
-            print(n)
+            # print('i=' + str(i))
+            # print(n)
 
             start = time.perf_counter()
             while j < pixel:

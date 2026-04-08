@@ -7,8 +7,8 @@ import serial.tools.list_ports
 class Device:
 
     def __init__(self):
-        self.lib_ps35 = cdll.LoadLibrary("G:\\DATA\\PyCharm Projects\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_Owis\\dll\\ps35.dll")
-        # self.lib_ps35 = cdll.LoadLibrary('C:\\DATA\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_Owis\\dll\\ps35.dll')
+        # self.lib_ps35 = cdll.LoadLibrary("G:\\DATA\\PyCharm Projects\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_Owis\\dll\\ps35.dll")
+        self.lib_ps35 = cdll.LoadLibrary('C:\\DATA\\MITHRA\\core_app\\controllers_TOREMOVE\\controller_Owis\\dll\\ps35.dll')
         # print(self.lib_ps35)
         self.connection = None
         self.ps35 = None
