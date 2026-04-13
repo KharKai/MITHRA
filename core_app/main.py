@@ -305,14 +305,18 @@ class Master(GUIManagement):
         self.update_params()
         if self.global_data_acquisition_parameter.data_acquisition_ris_lis:
             self.global_data_acquisition_parameter.white_spectrum_ris_lis = self.global_data_acquisition_parameter.point_ris_lis(True)
-            #TODO add choice to save or not
-            self.saver.mca_saver('white_ris',
-                                 self.global_data_acquisition_parameter.white_spectrum_ris_lis,
-                                 ('integration time: ' + str(self.acquisition_time / 4) + ' ms'))
+            response = QMessageBox.question(self, "Question", "Do you want to save white ris?",
+                                            QMessageBox.Yes, QMessageBox.No)
+            if response == QMessageBox.Yes:
+                self.saver.mca_saver('white_ris',
+                                     self.global_data_acquisition_parameter.white_spectrum_ris_lis,
+                                     ('integration time: ' + str(self.acquisition_time / 4) + ' ms'))
         if self.global_data_acquisition_parameter.data_acquisition_swir:
             self.global_data_acquisition_parameter.white_spectrum_swir =self.global_data_acquisition_parameter.point_swir(True)
-            # TODO add choice to save or not
-            self.saver.mca_saver('white_swir',
+            response = QMessageBox.question(self, "Question", "Do you want to save white swir?",
+                                            QMessageBox.Yes, QMessageBox.No)
+            if response == QMessageBox.Yes:
+                self.saver.mca_saver('white_swir',
                                  self.global_data_acquisition_parameter.white_spectrum_swir,
                                  ('integration time: ' + str(self.acquisition_time / 2) + ' ms, avg: 2'))
 
@@ -336,15 +340,20 @@ class Master(GUIManagement):
     def on_push_button_dark_clicked(self):
         self.update_params()
         if self.global_data_acquisition_parameter.data_acquisition_ris_lis:
-             self.global_data_acquisition_parameter.dark_spectrum_ris_lis = self.global_data_acquisition_parameter.point_ris_lis()
-             # TODO add choice to save or not
-             self.saver.mca_saver('dark_ris',
+             self.global_data_acquisition_parameter.dark_spectrum_ris_lis = self.global_data_acquisition_parameter.point_ris_lis(True)
+             response = QMessageBox.question(self, "Question", "Do you want to save dark ris?",
+                                             QMessageBox.Yes, QMessageBox.No)
+
+             if response == QMessageBox.Yes:
+                self.saver.mca_saver('dark_ris',
                                  self.global_data_acquisition_parameter.dark_spectrum_ris_lis,
                                  ('integration time: ' + str(self.acquisition_time / 4) + ' ms'))
         if self.global_data_acquisition_parameter.data_acquisition_swir:
-            self.global_data_acquisition_parameter.dark_spectrum_swir =self.global_data_acquisition_parameter.point_swir()
-            # TODO add choice to save or not
-            self.saver.mca_saver('dark_swir',
+            self.global_data_acquisition_parameter.dark_spectrum_swir =self.global_data_acquisition_parameter.point_swir(True)
+            response = QMessageBox.question(self, "Question", "Do you want to save dark swir?",
+                                            QMessageBox.Yes, QMessageBox.No)
+            if response == QMessageBox.Yes:
+                self.saver.mca_saver('dark_swir',
                                  self.global_data_acquisition_parameter.dark_spectrum_swir,
                                  ('integration time: ' + str(self.acquisition_time / 2) + ' ms, avg: 2'))
 
